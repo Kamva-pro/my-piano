@@ -384,6 +384,70 @@
       position: relative; z-index: 6;
     }
 
+    /* Fast Combo Sequence Order Badges on Piano Keys (Top/Far Edge) */
+    .key .combo-order-badge {
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 11px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: -0.2px;
+      line-height: 1;
+      pointer-events: none;
+      z-index: 15;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+    }
+
+    .key .combo-order-badge.current {
+      background: #ff4757;
+      color: #fff;
+      border: 2px solid #fff;
+      box-shadow: 0 0 12px rgba(255, 71, 87, 0.9), 0 2px 6px rgba(0, 0, 0, 0.6);
+      animation: badgePulse 0.3s infinite alternate;
+    }
+
+    .key .combo-order-badge.next-1 {
+      background: #ffa502;
+      color: #111;
+      border: 1.5px solid #fff;
+      box-shadow: 0 0 8px rgba(255, 165, 2, 0.7);
+    }
+
+    .key .combo-order-badge.next-2 {
+      background: rgba(255, 165, 2, 0.85);
+      color: #111;
+      border: 1.5px solid rgba(255, 255, 255, 0.85);
+    }
+
+    .key .combo-order-badge.next-3 {
+      background: rgba(255, 165, 2, 0.55);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    @keyframes badgePulse {
+      from { transform: translateX(-50%) scale(1); }
+      to { transform: translateX(-50%) scale(1.12); }
+    }
+
+    /* Hide the musical note label on combo keys so the order badge has full visibility */
+    .key.combo-active .label-note,
+    .key.combo-next-1 .label-note,
+    .key.combo-next-2 .label-note,
+    .key.combo-next-3 .label-note {
+      opacity: 0 !important;
+    }
+
     /* Combo Run in Coach Target */
     .combo-run-display {
       display: flex;
@@ -1484,6 +1548,7 @@
         document.querySelectorAll('.key.target, .key.fast-key, .key.combo-active, .key.combo-next-1, .key.combo-next-2, .key.combo-next-3').forEach(el => {
           el.classList.remove('target', 'fast-key', 'combo-active', 'combo-next-1', 'combo-next-2', 'combo-next-3');
         });
+        document.querySelectorAll('.combo-order-badge').forEach(b => b.remove());
       }
 
       // Scan forward from `startIdx` and collect a contiguous run of fast notes
@@ -1518,15 +1583,33 @@
         const lyricEl = document.getElementById('coach-lyric');
         if (currentItem && currentItem.step.lyric) lyricEl.innerText = currentItem.step.lyric;
 
-        // Keyboard: current key bright, next 3 fading
+        // Keyboard: current key bright, next 3 fading + order sequence badges on the far edge
         unhighlightKeys();
         const keyEl = getKeyEl(keyLabel.toUpperCase());
-        if (keyEl) keyEl.classList.add('target', 'combo-active');
+        if (keyEl) {
+          keyEl.classList.add('target', 'combo-active');
+          const badge = document.createElement('span');
+          badge.className = 'combo-order-badge current';
+          badge.textContent = '1';
+          keyEl.appendChild(badge);
+        }
         for (let i = 1; i <= 3; i++) {
           const ahead = run[currentPos + i];
           if (!ahead) break;
           const aEl = getKeyEl(ahead.step.key.toUpperCase());
-          if (aEl) aEl.classList.add(`combo-next-${i}`);
+          if (aEl) {
+            aEl.classList.add(`combo-next-${i}`);
+            let badge = aEl.querySelector('.combo-order-badge');
+            const stepNum = i + 1;
+            if (badge) {
+              badge.textContent += ` · ${stepNum}`;
+            } else {
+              badge = document.createElement('span');
+              badge.className = `combo-order-badge next-${i}`;
+              badge.textContent = `${stepNum}`;
+              aEl.appendChild(badge);
+            }
+          }
         }
       }
 
