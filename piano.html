@@ -83,7 +83,7 @@
       backdrop-filter: blur(12px);
       border-radius: 16px;
       padding: 20px 24px;
-      width: min(90vw, 360px);
+      width: min(90vw, 380px);
       cursor: pointer;
       text-align: left;
       transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
@@ -139,7 +139,7 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 24px;
+      padding-bottom: 20px;
     }
 
     .top-bar {
@@ -148,7 +148,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 20px;
+      padding: 14px 16px;
+      gap: 12px;
+      transition: max-width 0.2s ease;
+    }
+
+    .top-bar.wide-view {
+      max-width: min(98vw, 1260px);
     }
 
     .back-btn {
@@ -158,27 +164,47 @@
       padding: 8px 16px;
       border-radius: 10px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       backdrop-filter: blur(8px);
+      white-space: nowrap;
     }
 
-    .tutorial-panel {
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.1s;
+    }
+
+    .nav-btn:hover {
+      background: var(--gold);
+      color: #111;
+      border-color: var(--gold);
+    }
+
+    .panel-box {
       background: var(--panel);
       border: 1px solid rgba(242, 182, 50, 0.3);
       border-radius: 12px;
       padding: 8px 16px;
       display: flex;
-      gap: 16px;
+      gap: 14px;
       align-items: center;
       backdrop-filter: blur(12px);
+      flex-wrap: wrap;
     }
 
     .controls-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
     }
 
@@ -187,11 +213,55 @@
       align-items: center;
       gap: 5px;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     .controls-row input[type="range"] {
       accent-color: var(--gold);
-      width: 80px;
+      width: 70px;
+    }
+
+    .styled-select {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--gold);
+      border: 1px solid rgba(242, 182, 50, 0.4);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .styled-select option {
+      background: #1c1820;
+      color: #fff;
+    }
+
+    .btn-group {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-group button {
+      background: transparent;
+      border: none;
+      color: #aaa;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn-group button.active {
+      background: var(--gold);
+      color: #111;
     }
 
     /* --- Coach / Target Box --- */
@@ -199,9 +269,20 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       pointer-events: none;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
+    }
+
+    .coach-lyric {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--gold);
+      text-shadow: 0 0 16px rgba(242, 182, 50, 0.5);
+      min-height: 20px;
+      letter-spacing: 0.3px;
+      text-align: center;
+      max-width: 90vw;
     }
 
     #coach-target {
@@ -245,6 +326,40 @@
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
+    /* --- Octave Navigation Strip (Free Play) --- */
+    .octave-nav {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      padding: 2px 2px 8px 2px;
+      scrollbar-width: none;
+      width: 100%;
+    }
+
+    .octave-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .octave-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #ccc;
+      padding: 4px 10px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.1s ease;
+    }
+
+    .octave-pill:hover,
+    .octave-pill.active {
+      background: var(--gold);
+      color: #111;
+      border-color: var(--gold);
+    }
+
     /* --- Proportioned Piano --- */
     .piano-wrapper {
       width: min(96vw, 860px);
@@ -253,6 +368,11 @@
       border-radius: 16px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+      transition: width 0.2s ease;
+    }
+
+    .piano-wrapper.wide-view {
+      width: min(98vw, 1260px);
     }
 
     .piano-header {
@@ -269,12 +389,37 @@
 
     #keyboard-container {
       width: 100%;
-      height: 190px;
+      height: 195px;
       position: relative;
       display: flex;
       border-radius: 6px;
-      overflow: hidden;
       background: #080608;
+      overflow-x: hidden;
+      overflow-y: hidden;
+    }
+
+    #keyboard-container.scrollable {
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #keyboard-container.scrollable::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    #keyboard-container.scrollable::-webkit-scrollbar-track {
+      background: #0d0a0f;
+      border-radius: 4px;
+    }
+
+    #keyboard-container.scrollable::-webkit-scrollbar-thumb {
+      background: rgba(242, 182, 50, 0.35);
+      border-radius: 4px;
+    }
+
+    #keyboard-container.scrollable::-webkit-scrollbar-thumb:hover {
+      background: var(--gold);
     }
 
     .key {
@@ -283,10 +428,10 @@
       cursor: pointer;
       position: relative;
       transition: background 0.06s ease, transform 0.06s ease;
+      flex-shrink: 0;
     }
 
     .key.white {
-      flex: 1;
       background: var(--key-white);
       z-index: 1;
       box-shadow: inset 0 -8px 10px rgba(0, 0, 0, 0.15), inset -1px 0 2px rgba(0, 0, 0, 0.05);
@@ -322,42 +467,51 @@
 
     .key .label-key {
       position: absolute;
-      bottom: 10px;
+      bottom: 8px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
-      color: #444;
+      color: #333;
       pointer-events: none;
+      background: rgba(242, 182, 50, 0.25);
+      border: 1px solid rgba(242, 182, 50, 0.4);
+      border-radius: 4px;
+      padding: 0 4px;
+      line-height: 1.2;
     }
 
     .key .label-note {
       position: absolute;
-      top: 10px;
+      top: 8px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
-      color: #999;
+      color: #888;
       pointer-events: none;
+      white-space: nowrap;
     }
 
     .key.black .label-key {
-      bottom: 12px;
+      bottom: 10px;
       color: #f2b632;
-      font-size: 12px;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(242, 182, 50, 0.6);
     }
 
     .key.black .label-note {
-      top: 8px;
+      top: 6px;
       color: #b88a91;
-      font-size: 9px;
+      font-size: 8px;
     }
 
     .key.target .label-key {
       color: #000;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
+      background: rgba(255, 255, 255, 0.8);
     }
 
     .key.target .label-note {
@@ -385,12 +539,12 @@
 
     <div class="card" id="btnRunaway">
       <h3>Runaway — Kanye West (Tutorial)</h3>
-      <span>Authentic 2-cycle intro motif (56 notes)</span>
+      <span>Full Song: Intro Hook + "Toast" Chorus (120 notes)</span>
     </div>
 
     <div class="card" id="btnFreePlay">
-      <h3>Normal Piano</h3>
-      <span>Free play • Standard octave starting at C4</span>
+      <h3>Normal Piano (Full 88-Key Studio)</h3>
+      <span>88 Keys • Octave Shifting (Z/X) • Free Play</span>
     </div>
   </div>
 
@@ -398,10 +552,19 @@
   <div id="screen-piano" class="screen" style="z-index: 5; padding: 0;">
     <div id="ui-layer">
 
-      <div class="top-bar">
+      <div class="top-bar" id="top-bar">
         <button class="back-btn" id="btnBack">← Back</button>
 
-        <div id="tutorial-controls" class="tutorial-panel" style="display: none;">
+        <!-- Tutorial Controls Panel -->
+        <div id="tutorial-controls" class="panel-box" style="display: none;">
+          <div class="controls-row">
+            <span>Part:</span>
+            <select id="section-select" class="styled-select">
+              <option value="full">Full Song (Intro + Chorus)</option>
+              <option value="intro">Part 1: Intro Hook (56 notes)</option>
+              <option value="chorus">Part 2: "Toast" Chorus (64 notes)</option>
+            </select>
+          </div>
           <div class="controls-row">
             <label><input type="radio" name="playMode" value="wait" checked> Wait for me</label>
             <label><input type="radio" name="playMode" value="timed"> Timed</label>
@@ -409,15 +572,34 @@
           <div class="controls-row">
             <span>Tempo:</span>
             <input type="range" id="tempo" min="40" max="140" value="87">
-            <span id="tempo-val" style="width: 50px;">87 BPM</span>
+            <span id="tempo-val" style="width: 48px;">87 BPM</span>
           </div>
         </div>
 
-        <div style="width: 70px;"></div>
+        <!-- Free Play Controls Panel -->
+        <div id="freeplay-controls" class="panel-box" style="display: none;">
+          <div class="controls-row">
+            <span>Octave:</span>
+            <button class="nav-btn" id="btnOctDown" title="Shift Down (Z)">◀ Z</button>
+            <span id="octave-label" style="min-width: 30px; text-align: center; color: var(--gold); font-weight: 800;">C4</span>
+            <button class="nav-btn" id="btnOctUp" title="Shift Up (X)">X ▶</button>
+          </div>
+          <div class="controls-row">
+            <span>Keys:</span>
+            <div class="btn-group" id="view-mode-group">
+              <button class="active" data-view="88">88 Keys</button>
+              <button data-view="61">61 Keys</button>
+              <button data-view="17">Compact</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="width: 40px;"></div>
       </div>
 
       <!-- Coach Box (Tutorial) -->
       <div id="coach-area" class="coach-container" style="display: none;">
+        <div id="coach-lyric" class="coach-lyric">♪ (Intro: The Solitary Plink)</div>
         <div id="coach-target">;</div>
         <div class="chips-row">
           <div class="chip" id="chip-1"></div>
@@ -427,11 +609,25 @@
       </div>
 
       <!-- Piano Keyboard Unit -->
-      <div class="piano-wrapper">
+      <div class="piano-wrapper" id="piano-wrapper">
         <div class="piano-header">
-          <span>Keyboard Map: Home Row &amp; Above</span>
-          <span id="mode-badge">Free Play</span>
+          <span id="keyboard-legend">Keyboard Map: Home Row (Octave 4)</span>
+          <span id="mode-badge">Free Play Mode</span>
         </div>
+
+        <!-- Octave Navigator Strip (visible in 88 & 61 key modes) -->
+        <div class="octave-nav" id="octave-nav" style="display: none;">
+          <button class="octave-pill" data-midi="21">A0</button>
+          <button class="octave-pill" data-midi="24">C1</button>
+          <button class="octave-pill" data-midi="36">C2</button>
+          <button class="octave-pill" data-midi="48">C3</button>
+          <button class="octave-pill active" data-midi="60">C4 (Mid)</button>
+          <button class="octave-pill" data-midi="72">C5</button>
+          <button class="octave-pill" data-midi="84">C6</button>
+          <button class="octave-pill" data-midi="96">C7</button>
+          <button class="octave-pill" data-midi="108">C8</button>
+        </div>
+
         <div id="keyboard-container"></div>
       </div>
 
@@ -475,12 +671,12 @@
 
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.4, now + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+        gain.gain.linearRampToValueAtTime(0.36, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + 1.8);
 
         const filter = ctx.createBiquadFilter();
         filter.type = "lowpass";
-        filter.frequency.value = 2400;
+        filter.frequency.value = Math.min(3800, Math.max(900, freq * 4.2));
 
         osc.connect(filter);
         subOsc.connect(filter);
@@ -488,64 +684,161 @@
         gain.connect(ctx.destination);
 
         osc.start(now); subOsc.start(now);
-        osc.stop(now + 1.8); subOsc.stop(now + 1.8);
+        osc.stop(now + 2.0); subOsc.stop(now + 2.0);
       }
 
-      // --- Keyboard Mapping ---
-      const KEYS_CONFIG = [
-        { key: 'A', note: 'C4', freq: 261.63, isBlack: false },
-        { key: 'W', note: 'C#4', freq: 277.18, isBlack: true },
-        { key: 'S', note: 'D4', freq: 293.66, isBlack: false },
-        { key: 'E', note: 'D#4', freq: 311.13, isBlack: true },
-        { key: 'D', note: 'E4', freq: 329.63, isBlack: false },
-        { key: 'F', note: 'F4', freq: 349.23, isBlack: false },
-        { key: 'T', note: 'F#4', freq: 369.99, isBlack: true },
-        { key: 'G', note: 'G4', freq: 392.00, isBlack: false },
-        { key: 'Y', note: 'G#4', freq: 415.30, isBlack: true },
-        { key: 'H', note: 'A4', freq: 440.00, isBlack: false },
-        { key: 'U', note: 'A#4', freq: 466.16, isBlack: true },
-        { key: 'J', note: 'B4', freq: 493.88, isBlack: false },
-        { key: 'K', note: 'C5', freq: 523.25, isBlack: false },
-        { key: 'O', note: 'C#5', freq: 554.37, isBlack: true },
-        { key: 'L', note: 'D5', freq: 587.33, isBlack: false },
-        { key: 'P', note: 'D#5', freq: 622.25, isBlack: true },
-        { key: ';', note: 'E5', freq: 659.25, isBlack: false }
+      // --- ALL 88 KEYS DEFINITION ---
+      const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const ALL_KEYS_88 = [];
+      for (let m = 21; m <= 108; m++) {
+        const noteBase = NOTE_NAMES[m % 12];
+        const octave = Math.floor(m / 12) - 1;
+        ALL_KEYS_88.push({
+          midi: m,
+          note: `${noteBase}${octave}`,
+          freq: 440 * Math.pow(2, (m - 69) / 12),
+          isBlack: noteBase.includes('#'),
+          octave
+        });
+      }
+
+      // Physical Typing Keyboard offsets from Base C
+      const TYPING_KEY_OFFSETS = [
+        { key: 'A', offset: 0 },   // C
+        { key: 'W', offset: 1 },   // C#
+        { key: 'S', offset: 2 },   // D
+        { key: 'E', offset: 3 },   // D#
+        { key: 'D', offset: 4 },   // E
+        { key: 'F', offset: 5 },   // F
+        { key: 'T', offset: 6 },   // F#
+        { key: 'G', offset: 7 },   // G
+        { key: 'Y', offset: 8 },   // G#
+        { key: 'H', offset: 9 },   // A
+        { key: 'U', offset: 10 },  // A#
+        { key: 'J', offset: 11 },  // B
+        { key: 'K', offset: 12 },  // C (+1)
+        { key: 'O', offset: 13 },  // C# (+1)
+        { key: 'L', offset: 14 },  // D (+1)
+        { key: 'P', offset: 15 },  // D# (+1)
+        { key: ';', offset: 16 }   // E (+1)
       ];
 
-      function getKeyEl(keyChar) {
-        return Array.from(document.querySelectorAll('.key')).find(el => el.dataset.key === keyChar);
+      // Default 17 keys config for tutorial (C4 to E5)
+      const KEYS_CONFIG_17 = ALL_KEYS_88.filter(k => k.midi >= 60 && k.midi <= 76).map((k, i) => ({
+        ...k,
+        key: TYPING_KEY_OFFSETS[i].key
+      }));
+
+      let currentView = '88'; // '88', '61', or '17'
+      let baseOctave = 4; // C4 is middle C
+
+      function getVisibleKeys() {
+        if (currentMode === 'tutorial') {
+          return KEYS_CONFIG_17;
+        }
+        if (currentView === '17') {
+          const baseMidi = (baseOctave + 1) * 12;
+          return ALL_KEYS_88.filter(k => k.midi >= baseMidi && k.midi <= baseMidi + 16);
+        }
+        if (currentView === '61') {
+          return ALL_KEYS_88.filter(k => k.midi >= 36 && k.midi <= 96); // C2 to C7
+        }
+        return ALL_KEYS_88; // 88 keys
       }
 
       function buildKeyboard() {
         const container = document.getElementById('keyboard-container');
         container.innerHTML = '';
 
-        const whites = KEYS_CONFIG.filter(k => !k.isBlack);
-        const blacks = KEYS_CONFIG.filter(k => k.isBlack);
+        const keys = getVisibleKeys();
+        const whites = keys.filter(k => !k.isBlack);
         const wCount = whites.length;
-        const bw = (100 / wCount) * 0.62;
 
-        whites.forEach(k => {
-          let el = document.createElement('div');
+        const isScrollable = (currentMode === 'free' && (currentView === '88' || currentView === '61'));
+        if (isScrollable) {
+          container.classList.add('scrollable');
+        } else {
+          container.classList.remove('scrollable');
+        }
+
+        const whiteKeyWidth = isScrollable ? (currentView === '88' ? 28 : 31) : null;
+        const blackKeyWidth = isScrollable ? (currentView === '88' ? 18 : 20) : null;
+
+        // Base MIDI for physical keyboard mapping
+        const typingBaseMidi = (baseOctave + 1) * 12;
+
+        whites.forEach((k, idx) => {
+          const el = document.createElement('div');
           el.className = 'key white';
-          el.dataset.key = k.key;
-          el.innerHTML = `<span class="label-note">${k.note}</span><span class="label-key">${k.key}</span>`;
+          el.dataset.midi = k.midi;
+
+          // Find mapped typing key if within current octave window
+          const offset = k.midi - typingBaseMidi;
+          const typingDef = TYPING_KEY_OFFSETS.find(t => t.offset === offset);
+          if (typingDef) {
+            el.dataset.key = typingDef.key;
+          }
+
+          if (isScrollable) {
+            el.style.width = whiteKeyWidth + 'px';
+          } else {
+            el.style.flex = '1';
+          }
+
+          const keyBadge = typingDef ? `<span class="label-key">${typingDef.key}</span>` : '';
+          el.innerHTML = `<span class="label-note">${k.note}</span>${keyBadge}`;
           container.appendChild(el);
         });
 
+        const blacks = keys.filter(k => k.isBlack);
         blacks.forEach(k => {
-          let el = document.createElement('div');
+          const el = document.createElement('div');
           el.className = 'key black';
-          el.dataset.key = k.key;
-          el.innerHTML = `<span class="label-note">${k.note}</span><span class="label-key">${k.key}</span>`;
+          el.dataset.midi = k.midi;
 
-          let prevWhiteIdx = whites.findIndex(w => KEYS_CONFIG.indexOf(w) < KEYS_CONFIG.indexOf(k) && KEYS_CONFIG.indexOf(w) === KEYS_CONFIG.indexOf(k) - 1);
-          el.style.width = bw + '%';
-          el.style.left = `calc(${(prevWhiteIdx + 1) * (100 / wCount)}% - ${bw / 2}%)`;
+          const offset = k.midi - typingBaseMidi;
+          const typingDef = TYPING_KEY_OFFSETS.find(t => t.offset === offset);
+          if (typingDef) {
+            el.dataset.key = typingDef.key;
+          }
+
+          const prevWhiteIdx = whites.findIndex(w => w.midi === k.midi - 1);
+
+          if (isScrollable) {
+            el.style.width = blackKeyWidth + 'px';
+            el.style.left = ((prevWhiteIdx + 1) * whiteKeyWidth - (blackKeyWidth / 2)) + 'px';
+          } else {
+            const bw = (100 / wCount) * 0.62;
+            el.style.width = bw + '%';
+            el.style.left = `calc(${(prevWhiteIdx + 1) * (100 / wCount)}% - ${bw / 2}%)`;
+          }
+
+          const keyBadge = typingDef ? `<span class="label-key">${typingDef.key}</span>` : '';
+          el.innerHTML = `<span class="label-note">${k.note}</span>${keyBadge}`;
           container.appendChild(el);
         });
+
+        // Center on Middle C (C4) in scrollable mode
+        if (isScrollable) {
+          setTimeout(() => {
+            const midC = container.querySelector('.key[data-midi="60"]');
+            if (midC) {
+              container.scrollLeft = midC.offsetLeft - (container.clientWidth / 2) + 14;
+            }
+          }, 30);
+        }
       }
-      buildKeyboard();
+
+      function scrollToMidi(midi) {
+        const container = document.getElementById('keyboard-container');
+        const target = container.querySelector(`.key[data-midi="${midi}"]`);
+        if (target) {
+          container.scrollTo({
+            left: target.offsetLeft - (container.clientWidth / 2) + 14,
+            behavior: 'smooth'
+          });
+        }
+      }
 
       // --- Background Visuals ---
       const canvas = document.getElementById("waveBg");
@@ -566,9 +859,9 @@
         wctx.fillRect(0, 0, w, h);
 
         const layers = [
-          { f: 0.004, s: 1.0, amp: 26, color: 'rgba(200, 16, 46, ' },   // Red
-          { f: 0.007, s: -1.2, amp: 18, color: 'rgba(242, 182, 50, ' }, // Gold
-          { f: 0.011, s: 1.5, amp: 12, color: 'rgba(42, 79, 184, ' }    // Deep Blue
+          { f: 0.004, s: 1.0, amp: 26, color: 'rgba(200, 16, 46, ' },
+          { f: 0.007, s: -1.2, amp: 18, color: 'rgba(242, 182, 50, ' },
+          { f: 0.011, s: 1.5, amp: 12, color: 'rgba(42, 79, 184, ' }
         ];
 
         layers.forEach((L, i) => {
@@ -585,42 +878,147 @@
       }
       requestAnimationFrame(drawWave);
 
-      // --- AUTHENTIC RUNAWAY INTRO TUTORIAL (Kanye West) ---
-      // Real musical motif:
-      // Phrase 1 (Bars 1-4): 15x High E (E5) -> 1x Octave drop to Low E (E4)
-      // Phrase 2 (Bar 5):     3x High D# (D#5) -> 1x Octave drop to Low D# (D#4)
-      // Phrase 3 (Bar 6):     3x High C# (C#5) -> 1x Octave drop to Low C# (C#4)
-      // Phrase 4 (Bars 7-8):  2x A4 -> 1x G#4 -> 1x High E (E5 held through resolution)
-      const RUNAWAY_CYCLE = [
-        // Phrase 1 (Bars 1-4): 15x High E (;) -> 1x Low E (D)
-        ...Array(15).fill(null).map(() => ({ key: ";", beats: 1 })),
-        { key: "D", beats: 1 },
+      // --- COMPLETE RUNAWAY BY KANYE WEST (Intro + "Toast" Chorus) ---
+      const RUNAWAY_INTRO_CYCLE = [
+        // Bars 1-4: 15x High E (;) -> 1x Low E (D)
+        ...Array(15).fill(null).map((_, i) => ({
+          key: ";",
+          beats: 1,
+          lyric: i === 0 ? "♪ (Intro - The Solitary Plink)" : ""
+        })),
+        { key: "D", beats: 1, lyric: "Octave Drop (E4)" },
 
-        // Phrase 2 (Bar 5): 3x High D# (P) -> 1x Low D# (E)
-        { key: "P", beats: 1 },
-        { key: "P", beats: 1 },
-        { key: "P", beats: 1 },
-        { key: "E", beats: 1 },
+        // Bar 5: 3x High D# (P) -> 1x Low D# (E)
+        { key: "P", beats: 1, lyric: "" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "E", beats: 1, lyric: "Octave Drop (D#4)" },
 
-        // Phrase 3 (Bar 6): 3x High C# (O) -> 1x Low C# (W)
-        { key: "O", beats: 1 },
-        { key: "O", beats: 1 },
-        { key: "O", beats: 1 },
-        { key: "W", beats: 1 },
+        // Bar 6: 3x High C# (O) -> 1x Low C# (W)
+        { key: "O", beats: 1, lyric: "" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "W", beats: 1, lyric: "Octave Drop (C#4)" },
 
-        // Phrase 4 (Bars 7-8): A (H) -> A (H) -> G# (Y) -> High E (;) held
-        { key: "H", beats: 1 },
-        { key: "H", beats: 1 },
-        { key: "Y", beats: 1 },
-        { key: ";", beats: 3 }
+        // Bars 7-8: A (H) -> A (H) -> G# (Y) -> High E (;) held
+        { key: "H", beats: 1, lyric: "Cadence (A4)" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "G#4" },
+        { key: ";", beats: 3, lyric: "High E5 (Held)" }
       ];
 
-      // Two full cycles of the iconic theme (56 notes)
-      const SONG = [
-        ...RUNAWAY_CYCLE,
-        ...RUNAWAY_CYCLE
+      const RUNAWAY_INTRO = [
+        ...RUNAWAY_INTRO_CYCLE,
+        // Cycle 2: Bass & Cello enter
+        ...Array(15).fill(null).map((_, i) => ({
+          key: ";",
+          beats: 1,
+          lyric: i === 0 ? "♪ (Bass & Cello Enter)" : ""
+        })),
+        { key: "D", beats: 1, lyric: "Low E4" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "E", beats: 1, lyric: "Low D#4" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "W", beats: 1, lyric: "Low C#4" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: ";", beats: 3, lyric: "Resolution" }
       ];
 
+      // Iconic Chorus continuation ("Toast for the Douchebags" + "Run away")
+      const RUNAWAY_CHORUS = [
+        // "Let's have a toast for the douchebags"
+        { key: "Y", beats: 1, lyric: "Let's have a toast for the douchebags..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 2, lyric: "" },
+
+        // "Let's have a toast for the assholes"
+        { key: "Y", beats: 1, lyric: "Let's have a toast for the assholes..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 2, lyric: "" },
+
+        // "Let's have a toast for the scumbags"
+        { key: "Y", beats: 1, lyric: "Let's have a toast for the scumbags..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 2, lyric: "" },
+
+        // "Every one of them that I know"
+        { key: "Y", beats: 1, lyric: "Every one of them that I know..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "T", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "" },
+
+        // "Let's have a toast for the jerkoffs"
+        { key: "Y", beats: 1, lyric: "Let's have a toast for the jerkoffs..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 2, lyric: "" },
+
+        // "That'll never take work off"
+        { key: "Y", beats: 1, lyric: "That'll never take work off..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 2, lyric: "" },
+
+        // "Baby, I got a plan: run away as fast as you can"
+        { key: "Y", beats: 1, lyric: "Baby, I got a plan..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "J", beats: 2, lyric: "" },
+
+        // "Run away as fast as you can"
+        { key: "J", beats: 1, lyric: "Run away as fast as you can!" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "T", beats: 1, lyric: "" },
+        { key: "D", beats: 1, lyric: "" },
+        { key: "T", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "" },
+
+        // "Run away from me, baby"
+        { key: "J", beats: 1, lyric: "Run away from me, baby..." },
+        { key: "J", beats: 1, lyric: "" },
+        { key: "J", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "T", beats: 1, lyric: "" },
+        { key: "D", beats: 1, lyric: "" },
+        { key: "T", beats: 1, lyric: "Run away!" },
+        { key: "D", beats: 3, lyric: "" }
+      ];
+
+      // Full progression (Intro + Chorus, 120 notes)
+      const RUNAWAY_FULL = [
+        ...RUNAWAY_INTRO,
+        ...RUNAWAY_CHORUS
+      ];
+
+      let currentSong = RUNAWAY_FULL;
       let currentMode = 'free';
       let tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false };
 
@@ -629,23 +1027,50 @@
         document.getElementById(id).classList.add("active");
       }
 
-      // --- Navigation & Controls ---
+      function updateActiveOctaveLabel() {
+        document.getElementById('octave-label').innerText = `C${baseOctave}`;
+        document.getElementById('keyboard-legend').innerText = `Keyboard Map: Home Row (Octave ${baseOctave})`;
+        document.querySelectorAll('.octave-pill').forEach(pill => {
+          const pillMidi = parseInt(pill.dataset.midi);
+          const currentBaseMidi = (baseOctave + 1) * 12;
+          if (pillMidi === currentBaseMidi) {
+            pill.classList.add('active');
+          } else {
+            pill.classList.remove('active');
+          }
+        });
+      }
+
+      // --- Navigation & Mode Switching ---
       document.getElementById("btnFreePlay").addEventListener("click", () => {
         currentMode = 'free';
         document.getElementById('tutorial-controls').style.display = 'none';
+        document.getElementById('freeplay-controls').style.display = 'flex';
         document.getElementById('coach-area').style.display = 'none';
-        document.getElementById('mode-badge').innerText = 'Free Play Mode';
+        document.getElementById('octave-nav').style.display = (currentView === '88' || currentView === '61') ? 'flex' : 'none';
+        document.getElementById('piano-wrapper').classList.add('wide-view');
+        document.getElementById('top-bar').classList.add('wide-view');
+        document.getElementById('mode-badge').innerText = 'Free Play (Full Piano)';
+        updateActiveOctaveLabel();
+        buildKeyboard();
         show("screen-piano");
       });
 
       document.getElementById("btnRunaway").addEventListener("click", () => {
         currentMode = 'tutorial';
-        tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false };
+        currentView = '17';
         document.getElementById('tutorial-controls').style.display = 'flex';
+        document.getElementById('freeplay-controls').style.display = 'none';
         document.getElementById('coach-area').style.display = 'flex';
+        document.getElementById('octave-nav').style.display = 'none';
+        document.getElementById('piano-wrapper').classList.remove('wide-view');
+        document.getElementById('top-bar').classList.remove('wide-view');
         document.getElementById('mode-badge').innerText = 'Runaway Tutorial';
+        baseOctave = 4;
+        updateActiveOctaveLabel();
+        buildKeyboard();
+        loadSelectedSection();
         show("screen-piano");
-        nextCue();
       });
 
       document.getElementById("btnBack").addEventListener("click", () => {
@@ -654,6 +1079,67 @@
       });
 
       document.getElementById("btnEndBack").addEventListener("click", () => show("screen-start"));
+
+      // Free Play Controls
+      document.getElementById("btnOctDown").addEventListener("click", () => {
+        if (baseOctave > 1) {
+          baseOctave--;
+          updateActiveOctaveLabel();
+          buildKeyboard();
+        }
+      });
+
+      document.getElementById("btnOctUp").addEventListener("click", () => {
+        if (baseOctave < 7) {
+          baseOctave++;
+          updateActiveOctaveLabel();
+          buildKeyboard();
+        }
+      });
+
+      document.getElementById("view-mode-group").addEventListener("click", e => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        document.querySelectorAll('#view-mode-group button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentView = btn.dataset.view;
+
+        if (currentView === '17') {
+          document.getElementById('piano-wrapper').classList.remove('wide-view');
+          document.getElementById('top-bar').classList.remove('wide-view');
+          document.getElementById('octave-nav').style.display = 'none';
+        } else {
+          document.getElementById('piano-wrapper').classList.add('wide-view');
+          document.getElementById('top-bar').classList.add('wide-view');
+          document.getElementById('octave-nav').style.display = 'flex';
+        }
+
+        buildKeyboard();
+      });
+
+      document.getElementById("octave-nav").addEventListener("click", e => {
+        const pill = e.target.closest('.octave-pill');
+        if (!pill) return;
+        const midi = parseInt(pill.dataset.midi);
+        scrollToMidi(midi);
+      });
+
+      // Section selection
+      function loadSelectedSection() {
+        stopTutorial();
+        const section = document.getElementById("section-select").value;
+        if (section === 'intro') {
+          currentSong = RUNAWAY_INTRO;
+        } else if (section === 'chorus') {
+          currentSong = RUNAWAY_CHORUS;
+        } else {
+          currentSong = RUNAWAY_FULL;
+        }
+        tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false };
+        nextCue();
+      }
+
+      document.getElementById("section-select").addEventListener("change", loadSelectedSection);
 
       document.getElementById("tempo").addEventListener("input", e => {
         document.getElementById("tempo-val").innerText = e.target.value + " BPM";
@@ -677,12 +1163,20 @@
       }
 
       function updateCoachUI(step) {
-        const cfg = KEYS_CONFIG.find(k => k.key === (step.key || '').toUpperCase());
+        if (!step) return;
+        const cfg = KEYS_CONFIG_17.find(k => k.key === (step.key || '').toUpperCase());
         const noteName = cfg ? cfg.note : '';
         document.getElementById('coach-target').innerHTML = `<span>${step.key || '-'}</span>${noteName ? `<span style="font-size:12px; font-weight:700; opacity:0.8; margin-top:2px;">${noteName}</span>` : ''}`;
+
+        // Update lyric prompt
+        const lyricEl = document.getElementById('coach-lyric');
+        if (step.lyric) {
+          lyricEl.innerText = step.lyric;
+        }
+
         for (let i = 1; i <= 3; i++) {
           const chip = document.getElementById(`chip-${i}`);
-          const futureStep = SONG[tutorialState.index + i];
+          const futureStep = currentSong[tutorialState.index + i];
           if (futureStep) {
             chip.innerText = futureStep.key || '-';
             chip.style.visibility = 'visible';
@@ -693,14 +1187,14 @@
       }
 
       function nextCue() {
-        if (tutorialState.index >= SONG.length) {
+        if (tutorialState.index >= currentSong.length) {
           stopTutorial();
-          document.getElementById('hit-count').innerText = `${tutorialState.hits} / ${SONG.length}`;
+          document.getElementById('hit-count').innerText = `${tutorialState.hits} / ${currentSong.length}`;
           show("screen-end");
           return;
         }
 
-        const step = SONG[tutorialState.index];
+        const step = currentSong[tutorialState.index];
 
         if (!step.key) {
           updateCoachUI(step);
@@ -731,54 +1225,116 @@
         }
       }
 
-      // --- Input Handler ---
-      function triggerKey(letter) {
-        letter = letter.toUpperCase();
-        const config = KEYS_CONFIG.find(k => k.key === letter);
-        if (!config) return;
+      function getKeyEl(keyChar) {
+        return Array.from(document.querySelectorAll('.key')).find(el => el.dataset.key === keyChar);
+      }
 
-        playNoteEngine(config.freq);
-
-        const keyEl = getKeyEl(letter);
-        if (keyEl) {
-          keyEl.classList.add('active');
-          setTimeout(() => keyEl.classList.remove('active'), 140);
+      // Trigger by element directly (for clicks, touches, glissando)
+      function triggerKeyElement(el) {
+        if (!el) return;
+        const midi = parseInt(el.dataset.midi);
+        const kObj = ALL_KEYS_88.find(k => k.midi === midi);
+        if (kObj) {
+          playNoteEngine(kObj.freq);
         }
 
+        el.classList.add('active');
+        setTimeout(() => el.classList.remove('active'), 140);
+
         if (currentMode === 'tutorial' && tutorialState.waitingForInput) {
-          const step = SONG[tutorialState.index];
+          const step = currentSong[tutorialState.index];
+          const pressedKeyChar = el.dataset.key;
 
-          if (step && step.key && letter === step.key.toUpperCase()) {
-            tutorialState.hits++;
-            tutorialState.waitingForInput = false;
-            unhighlightKeys();
-
-            const coachEl = document.getElementById('coach-target');
-            coachEl.classList.add('hit');
-            setTimeout(() => coachEl.classList.remove('hit'), 120);
-
-            if (document.querySelector('input[name="playMode"]:checked').value === 'wait') {
-              tutorialState.timer = setTimeout(() => {
-                tutorialState.index++;
-                nextCue();
-              }, getBeatDuration(step.beats));
-            }
+          if (step && step.key && pressedKeyChar && pressedKeyChar.toUpperCase() === step.key.toUpperCase()) {
+            handleCorrectHit();
           }
         }
       }
 
-      // Touch / Pointer
-      document.getElementById('keyboard-container').addEventListener('pointerdown', e => {
+      // Trigger by physical keyboard key letter
+      function triggerKey(letter) {
+        letter = letter.toUpperCase();
+
+        // Support Octave Shift via Z and X in Free Play
+        if (currentMode === 'free') {
+          if (letter === 'Z') {
+            if (baseOctave > 1) {
+              baseOctave--;
+              updateActiveOctaveLabel();
+              buildKeyboard();
+            }
+            return;
+          }
+          if (letter === 'X') {
+            if (baseOctave < 7) {
+              baseOctave++;
+              updateActiveOctaveLabel();
+              buildKeyboard();
+            }
+            return;
+          }
+        }
+
+        // Find key element mapped to this letter
+        const keyEl = getKeyEl(letter);
+        if (keyEl) {
+          triggerKeyElement(keyEl);
+        } else {
+          // If not visible on current screen, calculate frequency and play anyway
+          const offsetDef = TYPING_KEY_OFFSETS.find(t => t.key === letter);
+          if (offsetDef) {
+            const targetMidi = (baseOctave + 1) * 12 + offsetDef.offset;
+            const kObj = ALL_KEYS_88.find(k => k.midi === targetMidi);
+            if (kObj) playNoteEngine(kObj.freq);
+          }
+        }
+      }
+
+      function handleCorrectHit() {
+        tutorialState.hits++;
+        tutorialState.waitingForInput = false;
+        unhighlightKeys();
+
+        const coachEl = document.getElementById('coach-target');
+        coachEl.classList.add('hit');
+        setTimeout(() => coachEl.classList.remove('hit'), 120);
+
+        const step = currentSong[tutorialState.index];
+        if (document.querySelector('input[name="playMode"]:checked').value === 'wait') {
+          tutorialState.timer = setTimeout(() => {
+            tutorialState.index++;
+            nextCue();
+          }, getBeatDuration(step ? step.beats : 1));
+        }
+      }
+
+      // --- Pointer & Touch Interaction with Glissando ---
+      let isPointerDown = false;
+      const keyContainer = document.getElementById('keyboard-container');
+
+      keyContainer.addEventListener('pointerdown', e => {
+        isPointerDown = true;
         const key = e.target.closest('.key');
-        if (key) triggerKey(key.dataset.key);
+        if (key) triggerKeyElement(key);
       });
 
-      // Physical Keyboard
+      keyContainer.addEventListener('pointerenter', e => {
+        if (!isPointerDown) return;
+        const key = e.target.closest('.key');
+        if (key) triggerKeyElement(key);
+      }, true);
+
+      window.addEventListener('pointerup', () => { isPointerDown = false; });
+      window.addEventListener('pointercancel', () => { isPointerDown = false; });
+
+      // Physical Keyboard Listener
       window.addEventListener('keydown', e => {
         if (e.repeat || !document.getElementById('screen-piano').classList.contains('active')) return;
         triggerKey(e.key);
       });
 
+      // Initial Build
+      buildKeyboard();
     })();
   </script>
 </body>
