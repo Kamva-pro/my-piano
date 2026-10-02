@@ -562,7 +562,7 @@
             <select id="section-select" class="styled-select">
               <option value="full">Full Song (All 5 Sections)</option>
               <option value="intro">Part 1: Solo Piano Intro (56 notes)</option>
-              <option value="beatdrop">🥁 Part 2: The Beat Drop & Verse 1</option>
+              <option value="beatdrop">🥁 Part 2: Fast Beat Drop & Verse 1</option>
               <option value="chorus">Part 3: Vocal "Toast" Chorus</option>
               <option value="pianortn">🎹 Part 4: Piano Returns (Solitary)</option>
               <option value="outro">⚡ Part 5: Fast Outro Drive (raise BPM!)</option>
@@ -1019,14 +1019,61 @@
       // The beat drops! Heavy bass & snapping percussion enter, followed by Kanye's Verse 1:
       // "And I always find, yeah I always find somethin' wrong..."
       const RUNAWAY_BEAT_DROP = [
-        // Beat Drop Impact ("Look at ya, look at ya...")
-        { key: "D", beats: 1, lyric: "🥁 BOOM! The Beat Drops!" },
-        { key: ";", beats: 1, lyric: "Look at ya, look at ya..." },
-        { key: "D", beats: 1, lyric: "" },
-        { key: ";", beats: 1, lyric: "Look at ya, look at ya..." },
-        { key: "D", beats: 1, lyric: "" },
-        { key: ";", beats: 1, lyric: "Drums & 808s lock in..." },
-        { key: "D", beats: 2, lyric: "Verse 1 starts..." },
+        // --- Fast Beat Emulation: 808 Kick & Rapid "Look at ya!" chops ---
+        { key: "D", beats: 1, lyric: "🥁 BOOM! Beat Drops! (808 Kick)" },
+
+        // Rapid "Look at ya!" Chops (E5 -> B4 -> G#4)
+        { key: ";", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        { key: ";", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        { key: ";", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        { key: ";", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        // Driving 808 snare & bass kick
+        { key: "D", beats: 0.6, lyric: "🥁 Snare & Kick!" },
+
+        { key: ";", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        { key: ";", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        // Beat Harmonic Descent (D# chord)
+        { key: "E", beats: 0.6, lyric: "Bass drop (D#)" },
+        { key: "P", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+        { key: "P", beats: 0.4, lyric: "Look at ya!" },
+        { key: "J", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        // Beat Harmonic Descent (C# chord)
+        { key: "W", beats: 0.6, lyric: "Bass drop (C#)" },
+        { key: "O", beats: 0.4, lyric: "Look at ya!" },
+        { key: "H", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+        { key: "O", beats: 0.4, lyric: "Look at ya!" },
+        { key: "H", beats: 0.4, lyric: "" },
+        { key: "Y", beats: 0.6, lyric: "" },
+
+        // Cadence into Verse 1
+        { key: "H", beats: 0.5, lyric: "Cadence" },
+        { key: "H", beats: 0.5, lyric: "" },
+        { key: "Y", beats: 0.5, lyric: "" },
+        { key: "D", beats: 0.5, lyric: "" },
+        { key: ";", beats: 1.5, lyric: "Here comes Verse 1..." },
 
         // "And I always find..."
         { key: "Y", beats: 1, lyric: "And I always find..." },
@@ -1257,8 +1304,8 @@
           tempoLabel.innerText = '87 BPM';
         } else if (section === 'beatdrop') {
           currentSong = RUNAWAY_BEAT_DROP;
-          tempoSlider.value = 87;
-          tempoLabel.innerText = '87 BPM 🥁';
+          tempoSlider.value = 92;
+          tempoLabel.innerText = '92 BPM 🥁';
         } else if (section === 'chorus') {
           currentSong = RUNAWAY_CHORUS;
           tempoSlider.value = 87;
