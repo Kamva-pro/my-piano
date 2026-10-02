@@ -355,6 +355,92 @@
       to { transform: translateY(3px); filter: brightness(1.35); }
     }
 
+    /* Simultaneous Fast Combo Styling */
+    .key.combo-active {
+      background: linear-gradient(180deg, #ff4757, #ffa502) !important;
+      border: 2px solid #fff !important;
+      box-shadow: 0 0 28px rgba(255, 71, 87, 0.95) !important;
+      animation: fastKeyPulse 0.25s infinite alternate !important;
+      position: relative;
+      z-index: 10;
+    }
+
+    .key.combo-next {
+      background: linear-gradient(180deg, rgba(255, 170, 0, 0.45), rgba(255, 80, 0, 0.55)) !important;
+      border: 2px dashed #ffa502 !important;
+      box-shadow: 0 0 18px rgba(255, 165, 2, 0.75) !important;
+      position: relative;
+      z-index: 8;
+    }
+
+    .key .combo-order-badge {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #ff4757;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+      pointer-events: none;
+      z-index: 12;
+      border: 1.5px solid #fff;
+    }
+
+    .key.combo-next .combo-order-badge {
+      background: #ffa502;
+      color: #111;
+      border: 1.5px solid #ffa502;
+    }
+
+    /* Combo Run in Coach Target */
+    .combo-run-display {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 26px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .combo-item {
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      transition: all 0.12s ease;
+    }
+
+    .combo-item.current {
+      background: #fff;
+      color: #ff4757;
+      transform: scale(1.18);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
+      border-color: #fff;
+    }
+
+    .combo-item.done {
+      opacity: 0.35;
+      text-decoration: line-through;
+      background: rgba(46, 213, 115, 0.2);
+      border-color: #2ed573;
+      color: #2ed573;
+    }
+
+    .combo-sep {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 18px;
+      font-weight: 700;
+    }
+
     .chips-row {
       display: flex;
       gap: 8px;
@@ -993,28 +1079,8 @@
         { key: ";", beats: 3, lyric: "High E5 (Held)" }
       ];
 
-      const RUNAWAY_INTRO = [
-        ...RUNAWAY_INTRO_CYCLE,
-        // Cycle 2: Bass & Cello enter
-        ...Array(15).fill(null).map((_, i) => ({
-          key: ";",
-          beats: 1,
-          lyric: i === 0 ? "♪ (Bass & Cello Enter)" : ""
-        })),
-        { key: "D", beats: 1, lyric: "Low E4" },
-        { key: "P", beats: 1, lyric: "" },
-        { key: "P", beats: 1, lyric: "" },
-        { key: "P", beats: 1, lyric: "" },
-        { key: "E", beats: 1, lyric: "Low D#4" },
-        { key: "O", beats: 1, lyric: "" },
-        { key: "O", beats: 1, lyric: "" },
-        { key: "O", beats: 1, lyric: "" },
-        { key: "W", beats: 1, lyric: "Low C#4" },
-        { key: "H", beats: 1, lyric: "" },
-        { key: "H", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: ";", beats: 3, lyric: "Resolution" }
-      ];
+      // Intro = single cycle only; beat drop follows immediately
+      const RUNAWAY_INTRO = [...RUNAWAY_INTRO_CYCLE];
 
       // Iconic Chorus continuation ("Toast for the Douchebags" + "Run away")
       const RUNAWAY_CHORUS = [
@@ -1266,7 +1332,8 @@
 
       let currentSong = RUNAWAY_FULL;
       let currentMode = 'free';
-      let tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false };
+      // comboRun: when inside a fast-note run, holds the full run array + position within it
+      let tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false, comboRun: null, comboPos: 0 };
 
       function show(id) {
         document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
@@ -1430,14 +1497,83 @@
       }
 
       function unhighlightKeys() {
-        document.querySelectorAll('.key.target').forEach(el => {
-          el.classList.remove('target');
-          el.classList.remove('fast-key');
+        document.querySelectorAll('.key.target, .key.fast-key, .key.combo-active, .key.combo-next').forEach(el => {
+          el.classList.remove('target', 'fast-key', 'combo-active', 'combo-next');
+          // Remove any order badges
+          el.querySelectorAll('.combo-order-badge').forEach(b => b.remove());
+        });
+      }
+
+      // Scan forward from `startIdx` and collect a contiguous run of fast notes
+      function getFastRunAt(startIdx) {
+        const run = [];
+        let i = startIdx;
+        while (i < currentSong.length) {
+          const s = currentSong[i];
+          if (s && s.key && s.beats && s.beats <= 0.6) {
+            run.push({ step: s, songIdx: i });
+            i++;
+          } else {
+            break;
+          }
+        }
+        return run.length >= 2 ? run : null; // only a "combo" if 2+ consecutive fast notes
+      }
+
+      // Render the combo bar in the coach target box
+      function renderComboBar(run, currentPos) {
+        const coachTarget = document.getElementById('coach-target');
+        coachTarget.classList.add('fast-note');
+
+        let html = '<div class="combo-run-display">';
+        run.forEach((item, idx) => {
+          if (idx > 0) html += '<span class="combo-sep">›</span>';
+          let cls = 'combo-item';
+          if (idx < currentPos) cls += ' done';
+          else if (idx === currentPos) cls += ' current';
+          html += `<span class="${cls}">${item.step.key}</span>`;
+        });
+        html += '</div>';
+        coachTarget.innerHTML = html;
+
+        // Show the lyric for the first note in the run (or current)
+        const lyricEl = document.getElementById('coach-lyric');
+        const lyricStep = run[currentPos] || run[0];
+        if (lyricStep && lyricStep.step.lyric) lyricEl.innerText = lyricStep.step.lyric;
+
+        // Highlight ALL keys in the run on the keyboard
+        unhighlightKeys();
+        run.forEach((item, idx) => {
+          const keyEl = getKeyEl(item.step.key.toUpperCase());
+          if (!keyEl) return;
+          if (idx === currentPos) {
+            keyEl.classList.add('target', 'combo-active');
+          } else if (idx > currentPos) {
+            keyEl.classList.add('combo-next');
+            // Add ordering badge so player knows sequence
+            const badge = document.createElement('span');
+            badge.className = 'combo-order-badge';
+            badge.textContent = idx + 1;
+            keyEl.appendChild(badge);
+          }
         });
       }
 
       function updateCoachUI(step) {
         if (!step) return;
+
+        // If we're inside a combo run, delegate to the combo renderer
+        if (tutorialState.comboRun) {
+          renderComboBar(tutorialState.comboRun, tutorialState.comboPos);
+
+          const speedBadge = document.getElementById('coach-speed-badge');
+          if (speedBadge) { speedBadge.style.display = 'inline-flex'; speedBadge.innerText = '⚡ FAST COMBO — HIT THEM IN ORDER!'; }
+
+          // Hide chips — combo bar is the cue
+          for (let i = 1; i <= 3; i++) document.getElementById(`chip-${i}`).style.visibility = 'hidden';
+          return;
+        }
+
         const cfg = KEYS_CONFIG_17.find(k => k.key === (step.key || '').toUpperCase());
         const noteName = cfg ? cfg.note : '';
         const isFast = step.beats && step.beats <= 0.6;
@@ -1462,9 +1598,7 @@
 
         // Update lyric prompt
         const lyricEl = document.getElementById('coach-lyric');
-        if (step.lyric) {
-          lyricEl.innerText = step.lyric;
-        }
+        if (step.lyric) lyricEl.innerText = step.lyric;
 
         for (let i = 1; i <= 3; i++) {
           const chip = document.getElementById(`chip-${i}`);
@@ -1473,11 +1607,8 @@
             const futureIsFast = futureStep.beats && futureStep.beats <= 0.6;
             chip.innerText = futureStep.key || '-';
             chip.style.visibility = 'visible';
-            if (futureIsFast) {
-              chip.classList.add('fast-chip');
-            } else {
-              chip.classList.remove('fast-chip');
-            }
+            if (futureIsFast) chip.classList.add('fast-chip');
+            else chip.classList.remove('fast-chip');
           } else {
             chip.style.visibility = 'hidden';
             chip.classList.remove('fast-chip');
@@ -1495,7 +1626,10 @@
 
         const step = currentSong[tutorialState.index];
 
+        // Auto-advance beat-only steps (no key)
         if (!step.key) {
+          tutorialState.comboRun = null;
+          tutorialState.comboPos = 0;
           updateCoachUI(step);
           unhighlightKeys();
           tutorialState.timer = setTimeout(() => {
@@ -1505,18 +1639,29 @@
           return;
         }
 
-        updateCoachUI(step);
+        const isFast = step.beats && step.beats <= 0.6;
 
-        // Highlight Target Key
-        const keyEl = getKeyEl(step.key.toUpperCase());
-        if (keyEl) {
-          keyEl.classList.add('target');
-          if (step.beats && step.beats <= 0.6) {
-            keyEl.classList.add('fast-key');
-          } else {
-            keyEl.classList.remove('fast-key');
+        // Check if this is the start of a fast combo run (and we're not already mid-combo)
+        if (isFast && !tutorialState.comboRun) {
+          const run = getFastRunAt(tutorialState.index);
+          if (run) {
+            tutorialState.comboRun = run;
+            tutorialState.comboPos = 0;
           }
         }
+
+        updateCoachUI(step);
+
+        // For normal (non-combo) notes, highlight the single target key
+        if (!tutorialState.comboRun) {
+          unhighlightKeys();
+          const keyEl = getKeyEl(step.key.toUpperCase());
+          if (keyEl) {
+            keyEl.classList.add('target');
+            if (isFast) keyEl.classList.add('fast-key');
+          }
+        }
+        // (combo highlighting is handled inside renderComboBar via updateCoachUI)
 
         const playMode = document.querySelector('input[name="playMode"]:checked').value;
         tutorialState.waitingForInput = true;
@@ -1524,6 +1669,14 @@
         if (playMode === 'timed') {
           tutorialState.timer = setTimeout(() => {
             tutorialState.waitingForInput = false;
+            // If mid-combo, advance combo position
+            if (tutorialState.comboRun) {
+              tutorialState.comboPos++;
+              if (tutorialState.comboPos >= tutorialState.comboRun.length) {
+                tutorialState.comboRun = null;
+                tutorialState.comboPos = 0;
+              }
+            }
             unhighlightKeys();
             tutorialState.index++;
             nextCue();
@@ -1622,20 +1775,32 @@
       function handleCorrectHit() {
         tutorialState.hits++;
         tutorialState.waitingForInput = false;
-        unhighlightKeys();
 
         const coachEl = document.getElementById('coach-target');
         coachEl.classList.add('hit');
         setTimeout(() => coachEl.classList.remove('hit'), 120);
 
         const step = currentSong[tutorialState.index];
+        const delay = getBeatDuration(step ? step.beats : 1);
+
+        // If we're inside a combo run, advance position within the run first
+        if (tutorialState.comboRun) {
+          tutorialState.comboPos++;
+          if (tutorialState.comboPos >= tutorialState.comboRun.length) {
+            // Combo complete — exit combo mode
+            tutorialState.comboRun = null;
+            tutorialState.comboPos = 0;
+            unhighlightKeys();
+          } else {
+            // Still in combo — re-render combo bar to advance the highlight
+            updateCoachUI(step);
+            tutorialState.waitingForInput = true;
+          }
+        } else {
+          unhighlightKeys();
+        }
+
         if (document.querySelector('input[name="playMode"]:checked').value === 'wait') {
-          // Restores the full musical duration:
-          // 3-beat held note = ~2.07s of resonant hold
-          // 2-beat note = ~1.38s of resonant hold
-          // 1-beat intro plink = ~690ms of solitary, slow deliberate pacing
-          // Fast beat chops (<=0.6 beats) = ~280ms
-          const delay = getBeatDuration(step ? step.beats : 1);
           tutorialState.timer = setTimeout(() => {
             tutorialState.index++;
             nextCue();
