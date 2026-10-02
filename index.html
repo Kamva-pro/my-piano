@@ -1107,6 +1107,10 @@
         baseOctave = 4;
         updateActiveOctaveLabel();
         buildKeyboard();
+        // Always reset to Full Song + 87 BPM when entering fresh from start screen
+        document.getElementById('section-select').value = 'full';
+        document.getElementById('tempo').value = 87;
+        document.getElementById('tempo-val').innerText = '87 BPM';
         loadSelectedSection();
         show("screen-piano");
       });
