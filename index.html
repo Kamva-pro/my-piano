@@ -560,9 +560,10 @@
           <div class="controls-row">
             <span>Part:</span>
             <select id="section-select" class="styled-select">
-              <option value="full">Full Song (Intro + Chorus)</option>
+              <option value="full">Full Song (All Sections)</option>
               <option value="intro">Part 1: Intro Hook (56 notes)</option>
               <option value="chorus">Part 2: "Toast" Chorus (64 notes)</option>
+              <option value="outro">⚡ Part 3: Fast Outro Drive (raise BPM!)</option>
             </select>
           </div>
           <div class="controls-row">
@@ -1012,10 +1013,47 @@
         { key: "D", beats: 3, lyric: "" }
       ];
 
-      // Full progression (Intro + Chorus, 120 notes)
+      // --- PART 3: THE FAST OUTRO DRIVE ---
+      // The main motif hammered in rapid 8th notes (0.5 beats each) at high BPM.
+      // This is the electrifying climax where the piano drives hard.
+      function makeOutroCycle(lyricLabel) {
+        return [
+          // 15x rapid E5 pounding
+          ...Array(15).fill(null).map((_, i) => ({
+            key: ";", beats: 0.5,
+            lyric: i === 0 ? lyricLabel : ""
+          })),
+          { key: "D", beats: 0.5, lyric: "" },
+          // Rapid D# descent
+          { key: "P", beats: 0.5, lyric: "" },
+          { key: "P", beats: 0.5, lyric: "" },
+          { key: "P", beats: 0.5, lyric: "" },
+          { key: "E", beats: 0.5, lyric: "" },
+          // Rapid C# descent
+          { key: "O", beats: 0.5, lyric: "" },
+          { key: "O", beats: 0.5, lyric: "" },
+          { key: "O", beats: 0.5, lyric: "" },
+          { key: "W", beats: 0.5, lyric: "" },
+          // Cadence — fast A A G# E
+          { key: "H", beats: 0.5, lyric: "" },
+          { key: "H", beats: 0.5, lyric: "" },
+          { key: "Y", beats: 0.5, lyric: "" },
+          { key: ";", beats: 1.5, lyric: "" }
+        ];
+      }
+
+      const RUNAWAY_OUTRO = [
+        ...makeOutroCycle("⚡ Outro Drive — Cycle 1 (raise BPM!)"),
+        ...makeOutroCycle("⚡ Cycle 2 — Keep the energy UP!"),
+        ...makeOutroCycle("⚡ Cycle 3 — Almost there!"),
+        ...makeOutroCycle("⚡ Cycle 4 — GO! GO! GO!"),
+      ];
+
+      // Full progression (Intro + Chorus + Outro)
       const RUNAWAY_FULL = [
         ...RUNAWAY_INTRO,
-        ...RUNAWAY_CHORUS
+        ...RUNAWAY_CHORUS,
+        ...RUNAWAY_OUTRO
       ];
 
       let currentSong = RUNAWAY_FULL;
@@ -1128,12 +1166,26 @@
       function loadSelectedSection() {
         stopTutorial();
         const section = document.getElementById("section-select").value;
+        const tempoSlider = document.getElementById("tempo");
+        const tempoLabel  = document.getElementById("tempo-val");
+
         if (section === 'intro') {
           currentSong = RUNAWAY_INTRO;
+          tempoSlider.value = 87;
+          tempoLabel.innerText = '87 BPM';
         } else if (section === 'chorus') {
           currentSong = RUNAWAY_CHORUS;
+          tempoSlider.value = 87;
+          tempoLabel.innerText = '87 BPM';
+        } else if (section === 'outro') {
+          currentSong = RUNAWAY_OUTRO;
+          // Suggest a high BPM so the fast notes feel properly punchy
+          tempoSlider.value = 130;
+          tempoLabel.innerText = '130 BPM ⚡';
         } else {
           currentSong = RUNAWAY_FULL;
+          tempoSlider.value = 87;
+          tempoLabel.innerText = '87 BPM';
         }
         tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false };
         nextCue();
