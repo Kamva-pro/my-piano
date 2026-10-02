@@ -539,7 +539,7 @@
 
     <div class="card" id="btnRunaway">
       <h3>Runaway — Kanye West (Tutorial)</h3>
-      <span>Full Song: Intro Hook + "Toast" Chorus (120 notes)</span>
+      <span>Full Song: Intro • Beat Drop & Verse • Chorus • Piano Returns • Fast Outro</span>
     </div>
 
     <div class="card" id="btnFreePlay">
@@ -560,10 +560,12 @@
           <div class="controls-row">
             <span>Part:</span>
             <select id="section-select" class="styled-select">
-              <option value="full">Full Song (All Sections)</option>
-              <option value="intro">Part 1: Intro Hook (56 notes)</option>
-              <option value="chorus">Part 2: "Toast" Chorus (64 notes)</option>
-              <option value="outro">⚡ Part 3: Fast Outro Drive (raise BPM!)</option>
+              <option value="full">Full Song (All 5 Sections)</option>
+              <option value="intro">Part 1: Solo Piano Intro (56 notes)</option>
+              <option value="beatdrop">🥁 Part 2: The Beat Drop & Verse 1</option>
+              <option value="chorus">Part 3: Vocal "Toast" Chorus</option>
+              <option value="pianortn">🎹 Part 4: Piano Returns (Solitary)</option>
+              <option value="outro">⚡ Part 5: Fast Outro Drive (raise BPM!)</option>
             </select>
           </div>
           <div class="controls-row">
@@ -1013,28 +1015,102 @@
         { key: "D", beats: 3, lyric: "" }
       ];
 
-      // --- PART 3: THE FAST OUTRO DRIVE ---
-      // The main motif hammered in rapid 8th notes (0.5 beats each) at high BPM.
-      // This is the electrifying climax where the piano drives hard.
+      // --- PART 2: THE BEAT DROP & VERSE 1 ---
+      // The beat drops! Heavy bass & snapping percussion enter, followed by Kanye's Verse 1:
+      // "And I always find, yeah I always find somethin' wrong..."
+      const RUNAWAY_BEAT_DROP = [
+        // Beat Drop Impact ("Look at ya, look at ya...")
+        { key: "D", beats: 1, lyric: "🥁 BOOM! The Beat Drops!" },
+        { key: ";", beats: 1, lyric: "Look at ya, look at ya..." },
+        { key: "D", beats: 1, lyric: "" },
+        { key: ";", beats: 1, lyric: "Look at ya, look at ya..." },
+        { key: "D", beats: 1, lyric: "" },
+        { key: ";", beats: 1, lyric: "Drums & 808s lock in..." },
+        { key: "D", beats: 2, lyric: "Verse 1 starts..." },
+
+        // "And I always find..."
+        { key: "Y", beats: 1, lyric: "And I always find..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+
+        // "Yeah, I always find somethin' wrong..."
+        { key: "Y", beats: 1, lyric: "Yeah, I always find somethin' wrong..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "" },
+
+        // "You been puttin' up wit' my shit just way too long..."
+        { key: "Y", beats: 1, lyric: "You been puttin' up wit' my shit just way too long..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "" },
+
+        // "I'm so gifted at findin' what I don't like the most..."
+        { key: "Y", beats: 1, lyric: "I'm so gifted at findin' what I don't like the most..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "T", beats: 2, lyric: "" },
+
+        // "So I think it's time for us to have a toast..."
+        { key: "T", beats: 1, lyric: "So I think it's time for us to have a toast..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "T", beats: 1, lyric: "" },
+        { key: "D", beats: 1, lyric: "" },
+        { key: "E", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "Raise a glass!" }
+      ];
+
+      // --- PART 4: PIANO RETURNS (strips back to solo piano) ---
+      // After the chorus, the beat drops out and silence falls.
+      // The solitary high piano plink returns alone — full circle.
+      const RUNAWAY_PIANO_RETURN = [
+        ...Array(15).fill(null).map((_, i) => ({
+          key: ";", beats: 1,
+          lyric: i === 0 ? "🎹 Beat Cuts Out — Back to Solitary Piano..." : ""
+        })),
+        { key: "D", beats: 1, lyric: "Low E4" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "P", beats: 1, lyric: "" },
+        { key: "E", beats: 1, lyric: "Low D#4" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "O", beats: 1, lyric: "" },
+        { key: "W", beats: 1, lyric: "Low C#4" },
+        { key: "H", beats: 1, lyric: "A4" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "G#4" },
+        { key: ";", beats: 3, lyric: "Just the piano. Full circle." }
+      ];
+
+      // --- PART 5: THE FAST OUTRO DRIVE ---
       function makeOutroCycle(lyricLabel) {
         return [
-          // 15x rapid E5 pounding
           ...Array(15).fill(null).map((_, i) => ({
             key: ";", beats: 0.5,
             lyric: i === 0 ? lyricLabel : ""
           })),
           { key: "D", beats: 0.5, lyric: "" },
-          // Rapid D# descent
           { key: "P", beats: 0.5, lyric: "" },
           { key: "P", beats: 0.5, lyric: "" },
           { key: "P", beats: 0.5, lyric: "" },
           { key: "E", beats: 0.5, lyric: "" },
-          // Rapid C# descent
           { key: "O", beats: 0.5, lyric: "" },
           { key: "O", beats: 0.5, lyric: "" },
           { key: "O", beats: 0.5, lyric: "" },
           { key: "W", beats: 0.5, lyric: "" },
-          // Cadence — fast A A G# E
           { key: "H", beats: 0.5, lyric: "" },
           { key: "H", beats: 0.5, lyric: "" },
           { key: "Y", beats: 0.5, lyric: "" },
@@ -1049,10 +1125,12 @@
         ...makeOutroCycle("⚡ Cycle 4 — GO! GO! GO!"),
       ];
 
-      // Full progression (Intro + Chorus + Outro)
+      // Full Song: Intro → Beat Drop → Chorus → Piano Return → Fast Outro
       const RUNAWAY_FULL = [
         ...RUNAWAY_INTRO,
+        ...RUNAWAY_BEAT_DROP,
         ...RUNAWAY_CHORUS,
+        ...RUNAWAY_PIANO_RETURN,
         ...RUNAWAY_OUTRO
       ];
 
@@ -1177,13 +1255,20 @@
           currentSong = RUNAWAY_INTRO;
           tempoSlider.value = 87;
           tempoLabel.innerText = '87 BPM';
+        } else if (section === 'beatdrop') {
+          currentSong = RUNAWAY_BEAT_DROP;
+          tempoSlider.value = 87;
+          tempoLabel.innerText = '87 BPM 🥁';
         } else if (section === 'chorus') {
           currentSong = RUNAWAY_CHORUS;
           tempoSlider.value = 87;
           tempoLabel.innerText = '87 BPM';
+        } else if (section === 'pianortn') {
+          currentSong = RUNAWAY_PIANO_RETURN;
+          tempoSlider.value = 87;
+          tempoLabel.innerText = '87 BPM 🎹';
         } else if (section === 'outro') {
           currentSong = RUNAWAY_OUTRO;
-          // Suggest a high BPM so the fast notes feel properly punchy
           tempoSlider.value = 130;
           tempoLabel.innerText = '130 BPM ⚡';
         } else {
