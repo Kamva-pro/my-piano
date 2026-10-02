@@ -307,6 +307,54 @@
       box-shadow: 0 0 45px rgba(242, 182, 50, 0.9);
     }
 
+    .coach-speed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(255, 60, 0, 0.35), rgba(242, 182, 50, 0.4));
+      border: 1px solid #ff4757;
+      color: #ff9f43;
+      box-shadow: 0 0 16px rgba(255, 71, 87, 0.5);
+      animation: pulseFast 0.5s infinite alternate;
+      margin-bottom: 2px;
+    }
+
+    @keyframes pulseFast {
+      from { transform: scale(0.96); opacity: 0.85; }
+      to { transform: scale(1.04); opacity: 1; filter: brightness(1.25); }
+    }
+
+    #coach-target.fast-note {
+      background: linear-gradient(135deg, #ff4757, #ffa502);
+      color: #fff;
+      box-shadow: 0 0 35px rgba(255, 71, 87, 0.85);
+      border: 2px solid #fff;
+      animation: targetPulse 0.35s infinite alternate;
+    }
+
+    @keyframes targetPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+
+    .key.target.fast-key {
+      animation: fastKeyPulse 0.3s infinite alternate !important;
+      background: linear-gradient(180deg, #ff4757, #ffa502) !important;
+      box-shadow: 0 0 25px rgba(255, 71, 87, 0.85) !important;
+      border-color: #fff !important;
+    }
+
+    @keyframes fastKeyPulse {
+      from { transform: translateY(0); filter: brightness(1); }
+      to { transform: translateY(3px); filter: brightness(1.35); }
+    }
+
     .chips-row {
       display: flex;
       gap: 8px;
@@ -324,6 +372,14 @@
       font-size: 14px;
       font-weight: 700;
       border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.15s ease;
+    }
+
+    .chip.fast-chip {
+      border-color: #ff4757;
+      color: #ffa502;
+      background: rgba(255, 71, 87, 0.2);
+      box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
     }
 
     /* --- Octave Navigation Strip (Free Play) --- */
@@ -602,6 +658,7 @@
 
       <!-- Coach Box (Tutorial) -->
       <div id="coach-area" class="coach-container" style="display: none;">
+        <div id="coach-speed-badge" class="coach-speed-badge" style="display: none;">⚡ FAST BEAT CHOP — QUICK!</div>
         <div id="coach-lyric" class="coach-lyric">♪ (Intro: The Solitary Plink)</div>
         <div id="coach-target">;</div>
         <div class="chips-row">
@@ -659,7 +716,7 @@
 
       let pulse = 0;
 
-      function playNoteEngine(freq) {
+      function playNoteEngine(freq, duration = 1.8) {
         pulse = 1;
         ensureCtx();
         const now = ctx.currentTime;
@@ -674,8 +731,9 @@
 
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.36, now + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.0008, now + 1.8);
+        gain.gain.linearRampToValueAtTime(0.38, now + 0.006);
+        const releaseTime = Math.min(1.8, Math.max(0.26, duration));
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + releaseTime);
 
         const filter = ctx.createBiquadFilter();
         filter.type = "lowpass";
@@ -687,7 +745,7 @@
         gain.connect(ctx.destination);
 
         osc.start(now); subOsc.start(now);
-        osc.stop(now + 2.0); subOsc.stop(now + 2.0);
+        osc.stop(now + releaseTime + 0.1); subOsc.stop(now + releaseTime + 0.1);
       }
 
       // --- ALL 88 KEYS DEFINITION ---
@@ -1347,14 +1405,35 @@
       }
 
       function unhighlightKeys() {
-        document.querySelectorAll('.key.target').forEach(el => el.classList.remove('target'));
+        document.querySelectorAll('.key.target').forEach(el => {
+          el.classList.remove('target');
+          el.classList.remove('fast-key');
+        });
       }
 
       function updateCoachUI(step) {
         if (!step) return;
         const cfg = KEYS_CONFIG_17.find(k => k.key === (step.key || '').toUpperCase());
         const noteName = cfg ? cfg.note : '';
-        document.getElementById('coach-target').innerHTML = `<span>${step.key || '-'}</span>${noteName ? `<span style="font-size:12px; font-weight:700; opacity:0.8; margin-top:2px;">${noteName}</span>` : ''}`;
+        const isFast = step.beats && step.beats <= 0.6;
+
+        const speedBadge = document.getElementById('coach-speed-badge');
+        if (speedBadge) {
+          if (isFast) {
+            speedBadge.style.display = 'inline-flex';
+            speedBadge.innerText = '⚡ FAST BEAT CHOP — TAP QUICK!';
+          } else {
+            speedBadge.style.display = 'none';
+          }
+        }
+
+        const coachTarget = document.getElementById('coach-target');
+        coachTarget.innerHTML = `<span>${step.key || '-'}</span>${noteName ? `<span style="font-size:12px; font-weight:700; opacity:0.8; margin-top:2px;">${noteName}</span>` : ''}`;
+        if (isFast) {
+          coachTarget.classList.add('fast-note');
+        } else {
+          coachTarget.classList.remove('fast-note');
+        }
 
         // Update lyric prompt
         const lyricEl = document.getElementById('coach-lyric');
@@ -1366,10 +1445,17 @@
           const chip = document.getElementById(`chip-${i}`);
           const futureStep = currentSong[tutorialState.index + i];
           if (futureStep) {
+            const futureIsFast = futureStep.beats && futureStep.beats <= 0.6;
             chip.innerText = futureStep.key || '-';
             chip.style.visibility = 'visible';
+            if (futureIsFast) {
+              chip.classList.add('fast-chip');
+            } else {
+              chip.classList.remove('fast-chip');
+            }
           } else {
             chip.style.visibility = 'hidden';
+            chip.classList.remove('fast-chip');
           }
         }
       }
@@ -1398,7 +1484,14 @@
 
         // Highlight Target Key
         const keyEl = getKeyEl(step.key.toUpperCase());
-        if (keyEl) keyEl.classList.add('target');
+        if (keyEl) {
+          keyEl.classList.add('target');
+          if (step.beats && step.beats <= 0.6) {
+            keyEl.classList.add('fast-key');
+          } else {
+            keyEl.classList.remove('fast-key');
+          }
+        }
 
         const playMode = document.querySelector('input[name="playMode"]:checked').value;
         tutorialState.waitingForInput = true;
@@ -1422,8 +1515,15 @@
         if (!el) return;
         const midi = parseInt(el.dataset.midi);
         const kObj = ALL_KEYS_88.find(k => k.midi === midi);
+        let noteDuration = 1.8;
+        if (currentMode === 'tutorial') {
+          const step = currentSong[tutorialState.index];
+          if (step && step.beats) {
+            noteDuration = step.beats <= 0.6 ? 0.32 : Math.min(1.8, step.beats * 0.9);
+          }
+        }
         if (kObj) {
-          playNoteEngine(kObj.freq);
+          playNoteEngine(kObj.freq, noteDuration);
         }
 
         el.classList.add('active');
@@ -1485,14 +1585,16 @@
 
         const coachEl = document.getElementById('coach-target');
         coachEl.classList.add('hit');
-        setTimeout(() => coachEl.classList.remove('hit'), 120);
+        setTimeout(() => coachEl.classList.remove('hit'), 100);
 
         const step = currentSong[tutorialState.index];
         if (document.querySelector('input[name="playMode"]:checked').value === 'wait') {
+          // For fast chops (beats <= 0.6), advance immediately (40ms) so you can tap as fast as the beat!
+          const delay = (step && step.beats <= 0.6) ? 40 : Math.min(200, getBeatDuration(step ? step.beats : 1) * 0.3);
           tutorialState.timer = setTimeout(() => {
             tutorialState.index++;
             nextCue();
-          }, getBeatDuration(step ? step.beats : 1));
+          }, delay);
         }
       }
 
