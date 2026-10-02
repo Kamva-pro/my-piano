@@ -715,11 +715,16 @@
       document.body.addEventListener('keydown', ensureCtx, { once: true });
 
       let pulse = 0;
+      const activeVoices = new Map();
 
-      function playNoteEngine(freq, duration = 1.8) {
+      function playNoteEngine(freq, midi = null, duration = 2.5) {
         pulse = 1;
         ensureCtx();
         const now = ctx.currentTime;
+
+        if (midi && activeVoices.has(midi)) {
+          stopNoteEngine(midi);
+        }
 
         const osc = ctx.createOscillator();
         osc.type = "triangle";
@@ -731,9 +736,9 @@
 
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.38, now + 0.006);
-        const releaseTime = Math.min(1.8, Math.max(0.26, duration));
-        gain.gain.exponentialRampToValueAtTime(0.0008, now + releaseTime);
+        gain.gain.linearRampToValueAtTime(0.38, now + 0.008);
+        const naturalDecay = Math.max(2.2, duration);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + naturalDecay);
 
         const filter = ctx.createBiquadFilter();
         filter.type = "lowpass";
@@ -745,7 +750,27 @@
         gain.connect(ctx.destination);
 
         osc.start(now); subOsc.start(now);
-        osc.stop(now + releaseTime + 0.1); subOsc.stop(now + releaseTime + 0.1);
+        osc.stop(now + naturalDecay + 0.1); subOsc.stop(now + naturalDecay + 0.1);
+
+        const voice = { osc, subOsc, gain };
+        if (midi) {
+          activeVoices.set(midi, voice);
+        }
+        return voice;
+      }
+
+      function stopNoteEngine(midi) {
+        if (!midi || !activeVoices.has(midi) || !ctx) return;
+        const voice = activeVoices.get(midi);
+        activeVoices.delete(midi);
+        const now = ctx.currentTime;
+        try {
+          voice.gain.gain.cancelScheduledValues(now);
+          voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
+          voice.gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.4);
+          voice.osc.stop(now + 0.45);
+          voice.subOsc.stop(now + 0.45);
+        } catch (e) {}
       }
 
       // --- ALL 88 KEYS DEFINITION ---
@@ -1515,15 +1540,16 @@
         if (!el) return;
         const midi = parseInt(el.dataset.midi);
         const kObj = ALL_KEYS_88.find(k => k.midi === midi);
-        let noteDuration = 1.8;
+        let noteDuration = 2.5;
         if (currentMode === 'tutorial') {
           const step = currentSong[tutorialState.index];
           if (step && step.beats) {
-            noteDuration = step.beats <= 0.6 ? 0.32 : Math.min(1.8, step.beats * 0.9);
+            // Held resolution notes (beats >= 2) sustain longer
+            noteDuration = step.beats >= 2 ? Math.max(3.0, step.beats * 1.0) : 2.2;
           }
         }
         if (kObj) {
-          playNoteEngine(kObj.freq, noteDuration);
+          playNoteEngine(kObj.freq, midi, noteDuration);
         }
 
         el.classList.add('active');
@@ -1535,6 +1561,21 @@
 
           if (step && step.key && pressedKeyChar && pressedKeyChar.toUpperCase() === step.key.toUpperCase()) {
             handleCorrectHit();
+          }
+        }
+      }
+
+      function releaseKey(letter) {
+        letter = letter.toUpperCase();
+        const keyEl = getKeyEl(letter);
+        if (keyEl) {
+          const midi = parseInt(keyEl.dataset.midi);
+          stopNoteEngine(midi);
+        } else {
+          const offsetDef = TYPING_KEY_OFFSETS.find(t => t.key === letter);
+          if (offsetDef) {
+            const targetMidi = (baseOctave + 1) * 12 + offsetDef.offset;
+            stopNoteEngine(targetMidi);
           }
         }
       }
@@ -1573,7 +1614,7 @@
           if (offsetDef) {
             const targetMidi = (baseOctave + 1) * 12 + offsetDef.offset;
             const kObj = ALL_KEYS_88.find(k => k.midi === targetMidi);
-            if (kObj) playNoteEngine(kObj.freq);
+            if (kObj) playNoteEngine(kObj.freq, targetMidi, 2.5);
           }
         }
       }
@@ -1585,12 +1626,16 @@
 
         const coachEl = document.getElementById('coach-target');
         coachEl.classList.add('hit');
-        setTimeout(() => coachEl.classList.remove('hit'), 100);
+        setTimeout(() => coachEl.classList.remove('hit'), 120);
 
         const step = currentSong[tutorialState.index];
         if (document.querySelector('input[name="playMode"]:checked').value === 'wait') {
-          // For fast chops (beats <= 0.6), advance immediately (40ms) so you can tap as fast as the beat!
-          const delay = (step && step.beats <= 0.6) ? 40 : Math.min(200, getBeatDuration(step ? step.beats : 1) * 0.3);
+          // Restores the full musical duration:
+          // 3-beat held note = ~2.07s of resonant hold
+          // 2-beat note = ~1.38s of resonant hold
+          // 1-beat intro plink = ~690ms of solitary, slow deliberate pacing
+          // Fast beat chops (<=0.6 beats) = ~280ms
+          const delay = getBeatDuration(step ? step.beats : 1);
           tutorialState.timer = setTimeout(() => {
             tutorialState.index++;
             nextCue();
@@ -1614,13 +1659,24 @@
         if (key) triggerKeyElement(key);
       }, true);
 
-      window.addEventListener('pointerup', () => { isPointerDown = false; });
-      window.addEventListener('pointercancel', () => { isPointerDown = false; });
+      window.addEventListener('pointerup', () => {
+        isPointerDown = false;
+        activeVoices.forEach((_, midi) => stopNoteEngine(midi));
+      });
+      window.addEventListener('pointercancel', () => {
+        isPointerDown = false;
+        activeVoices.forEach((_, midi) => stopNoteEngine(midi));
+      });
 
       // Physical Keyboard Listener
       window.addEventListener('keydown', e => {
         if (e.repeat || !document.getElementById('screen-piano').classList.contains('active')) return;
         triggerKey(e.key);
+      });
+
+      window.addEventListener('keyup', e => {
+        if (!document.getElementById('screen-piano').classList.contains('active')) return;
+        releaseKey(e.key);
       });
 
       // Initial Build
