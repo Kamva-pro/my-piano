@@ -365,39 +365,23 @@
       z-index: 10;
     }
 
-    .key.combo-next {
-      background: linear-gradient(180deg, rgba(255, 170, 0, 0.45), rgba(255, 80, 0, 0.55)) !important;
-      border: 2px dashed #ffa502 !important;
-      box-shadow: 0 0 18px rgba(255, 165, 2, 0.75) !important;
-      position: relative;
-      z-index: 8;
+    /* Next 3 upcoming keys — subtle fade by distance */
+    .key.combo-next-1 {
+      background: linear-gradient(180deg, rgba(255,165,0,0.38), rgba(255,80,0,0.45)) !important;
+      border: 2px dashed rgba(255,165,0,0.9) !important;
+      box-shadow: 0 0 14px rgba(255,165,0,0.55) !important;
+      position: relative; z-index: 8;
     }
-
-    .key .combo-order-badge {
-      position: absolute;
-      top: 6px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: #ff4757;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 900;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 10px rgba(0,0,0,0.8);
-      pointer-events: none;
-      z-index: 12;
-      border: 1.5px solid #fff;
+    .key.combo-next-2 {
+      background: linear-gradient(180deg, rgba(255,165,0,0.22), rgba(255,80,0,0.28)) !important;
+      border: 1.5px dashed rgba(255,165,0,0.55) !important;
+      box-shadow: 0 0 8px rgba(255,165,0,0.3) !important;
+      position: relative; z-index: 7;
     }
-
-    .key.combo-next .combo-order-badge {
-      background: #ffa502;
-      color: #111;
-      border: 1.5px solid #ffa502;
+    .key.combo-next-3 {
+      background: linear-gradient(180deg, rgba(255,165,0,0.12), rgba(255,80,0,0.16)) !important;
+      border: 1px dashed rgba(255,165,0,0.3) !important;
+      position: relative; z-index: 6;
     }
 
     /* Combo Run in Coach Target */
@@ -1497,10 +1481,8 @@
       }
 
       function unhighlightKeys() {
-        document.querySelectorAll('.key.target, .key.fast-key, .key.combo-active, .key.combo-next').forEach(el => {
-          el.classList.remove('target', 'fast-key', 'combo-active', 'combo-next');
-          // Remove any order badges
-          el.querySelectorAll('.combo-order-badge').forEach(b => b.remove());
+        document.querySelectorAll('.key.target, .key.fast-key, .key.combo-active, .key.combo-next-1, .key.combo-next-2, .key.combo-next-3').forEach(el => {
+          el.classList.remove('target', 'fast-key', 'combo-active', 'combo-next-1', 'combo-next-2', 'combo-next-3');
         });
       }
 
@@ -1520,26 +1502,46 @@
         return run.length >= 2 ? run : null; // only a "combo" if 2+ consecutive fast notes
       }
 
-      // Render the combo bar in the coach target box — one key at a time, simple
+      // Render the combo bar — current key blazing + next 3 dimmed as lookahead
       function renderComboBar(run, currentPos) {
         const coachTarget = document.getElementById('coach-target');
         coachTarget.classList.add('fast-note');
 
         const currentItem = run[currentPos] || run[0];
         const keyLabel = currentItem ? currentItem.step.key : '?';
-        const progress = `${currentPos + 1}/${run.length}`;
+        const remaining = run.length - currentPos;
 
-        // Show just the current key + small progress counter
-        coachTarget.innerHTML = `<span>${keyLabel}</span><span style="font-size:11px;font-weight:700;opacity:0.75;margin-top:2px;">${progress}</span>`;
+        // Coach box: big current key + next 3 as small preview chips
+        let lookaheadHtml = '';
+        for (let i = 1; i <= 3; i++) {
+          const ahead = run[currentPos + i];
+          if (ahead) {
+            const opacity = i === 1 ? 0.65 : i === 2 ? 0.4 : 0.22;
+            lookaheadHtml += `<span style="font-size:${22 - i*3}px;opacity:${opacity};margin-left:${i===1?'10px':'5px'};font-weight:900;">${ahead.step.key}</span>`;
+            if (run[currentPos + i + 1] && i < 3) lookaheadHtml += `<span style="opacity:0.2;font-size:10px;margin:0 2px;">›</span>`;
+          }
+        }
+        const progress = `${currentPos + 1}/${run.length}`;
+        coachTarget.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:center;gap:0;">
+            <span style="font-size:46px;line-height:1;">${keyLabel}</span>${lookaheadHtml}
+          </div>
+          <span style="font-size:10px;font-weight:700;opacity:0.6;margin-top:1px;">${progress}</span>`;
 
         // Show the lyric for the current note
         const lyricEl = document.getElementById('coach-lyric');
         if (currentItem && currentItem.step.lyric) lyricEl.innerText = currentItem.step.lyric;
 
-        // Only highlight the ONE key you need to press right now
+        // Keyboard: current key bright, next 3 fading
         unhighlightKeys();
         const keyEl = getKeyEl(keyLabel.toUpperCase());
         if (keyEl) keyEl.classList.add('target', 'combo-active');
+        for (let i = 1; i <= 3; i++) {
+          const ahead = run[currentPos + i];
+          if (!ahead) break;
+          const aEl = getKeyEl(ahead.step.key.toUpperCase());
+          if (aEl) aEl.classList.add(`combo-next-${i}`);
+        }
       }
 
       function updateCoachUI(step) {
