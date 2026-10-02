@@ -1520,43 +1520,26 @@
         return run.length >= 2 ? run : null; // only a "combo" if 2+ consecutive fast notes
       }
 
-      // Render the combo bar in the coach target box
+      // Render the combo bar in the coach target box — one key at a time, simple
       function renderComboBar(run, currentPos) {
         const coachTarget = document.getElementById('coach-target');
         coachTarget.classList.add('fast-note');
 
-        let html = '<div class="combo-run-display">';
-        run.forEach((item, idx) => {
-          if (idx > 0) html += '<span class="combo-sep">›</span>';
-          let cls = 'combo-item';
-          if (idx < currentPos) cls += ' done';
-          else if (idx === currentPos) cls += ' current';
-          html += `<span class="${cls}">${item.step.key}</span>`;
-        });
-        html += '</div>';
-        coachTarget.innerHTML = html;
+        const currentItem = run[currentPos] || run[0];
+        const keyLabel = currentItem ? currentItem.step.key : '?';
+        const progress = `${currentPos + 1}/${run.length}`;
 
-        // Show the lyric for the first note in the run (or current)
+        // Show just the current key + small progress counter
+        coachTarget.innerHTML = `<span>${keyLabel}</span><span style="font-size:11px;font-weight:700;opacity:0.75;margin-top:2px;">${progress}</span>`;
+
+        // Show the lyric for the current note
         const lyricEl = document.getElementById('coach-lyric');
-        const lyricStep = run[currentPos] || run[0];
-        if (lyricStep && lyricStep.step.lyric) lyricEl.innerText = lyricStep.step.lyric;
+        if (currentItem && currentItem.step.lyric) lyricEl.innerText = currentItem.step.lyric;
 
-        // Highlight ALL keys in the run on the keyboard
+        // Only highlight the ONE key you need to press right now
         unhighlightKeys();
-        run.forEach((item, idx) => {
-          const keyEl = getKeyEl(item.step.key.toUpperCase());
-          if (!keyEl) return;
-          if (idx === currentPos) {
-            keyEl.classList.add('target', 'combo-active');
-          } else if (idx > currentPos) {
-            keyEl.classList.add('combo-next');
-            // Add ordering badge so player knows sequence
-            const badge = document.createElement('span');
-            badge.className = 'combo-order-badge';
-            badge.textContent = idx + 1;
-            keyEl.appendChild(badge);
-          }
-        });
+        const keyEl = getKeyEl(keyLabel.toUpperCase());
+        if (keyEl) keyEl.classList.add('target', 'combo-active');
       }
 
       function updateCoachUI(step) {
@@ -1783,19 +1766,21 @@
         const step = currentSong[tutorialState.index];
         const delay = getBeatDuration(step ? step.beats : 1);
 
-        // If we're inside a combo run, advance position within the run first
+        // If we're inside a combo run, advance instantly — no delay
         if (tutorialState.comboRun) {
           tutorialState.comboPos++;
+          tutorialState.index++;
           if (tutorialState.comboPos >= tutorialState.comboRun.length) {
             // Combo complete — exit combo mode
             tutorialState.comboRun = null;
             tutorialState.comboPos = 0;
             unhighlightKeys();
+            nextCue();
           } else {
-            // Still in combo — re-render combo bar to advance the highlight
-            updateCoachUI(step);
-            tutorialState.waitingForInput = true;
+            // Still in combo — show next key immediately, no wait
+            nextCue();
           }
+          return; // skip the normal wait-mode delay below
         } else {
           unhighlightKeys();
         }
