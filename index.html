@@ -325,6 +325,22 @@
       margin-bottom: 2px;
     }
 
+    .coach-hold-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e0e0e0;
+      margin-top: 4px;
+      transition: all 0.12s ease;
+    }
+
     @keyframes pulseFast {
       from { transform: scale(0.96); opacity: 0.85; }
       to { transform: scale(1.04); opacity: 1; filter: brightness(1.25); }
@@ -708,6 +724,21 @@
       color: #222;
     }
 
+    .key .label-key.number-badge {
+      background: rgba(0, 242, 254, 0.28) !important;
+      border: 1px solid rgba(0, 242, 254, 0.85) !important;
+      color: #00f2fe !important;
+      text-shadow: 0 0 8px rgba(0, 242, 254, 0.7);
+      font-weight: 900;
+    }
+
+    .key.black .label-key.number-badge {
+      background: rgba(0, 25, 35, 0.9) !important;
+      border: 1px solid rgba(0, 242, 254, 0.9) !important;
+      color: #00f2fe !important;
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.9);
+    }
+
     .score-val {
       font-size: 64px;
       font-weight: 900;
@@ -795,6 +826,7 @@
         <div id="coach-speed-badge" class="coach-speed-badge" style="display: none;">⚡ FAST BEAT CHOP — QUICK!</div>
         <div id="coach-lyric" class="coach-lyric">♪ (Intro: The Solitary Plink)</div>
         <div id="coach-target">;</div>
+        <div id="coach-hold-guide" class="coach-hold-badge">⏱️ Hold: ~0.65s (1 beat)</div>
         <div class="chips-row">
           <div class="chip" id="chip-1"></div>
           <div class="chip" id="chip-2"></div>
@@ -943,18 +975,20 @@
         { key: ';', offset: 16 }   // E (+1)
       ];
 
-      // Beat-Drop Number Row: keys 1–9 in a straight line left=low, right=high.
-      //  1 = C#4  2 = D#4  3 = E4  4 = G#4  5 = A4  6 = B4  7 = C#5  8 = D#5  9 = E5
+      // Beat-Drop Number Keys:
+      // Group 1: 1 2 3 (E Kick & Chops: E4, B4, E5)
+      // Group 2: 4 5 6 (D# Bass Descent: D#4, A#4, D#5)
+      // Group 3: 7 8 9 (C# Bass Descent: C#4, G#4, C#5)
       const NUMBER_KEY_OFFSETS = [
-        { key: '1', offset: 1  },  // C#4  (deep bass)
-        { key: '2', offset: 3  },  // D#4  (bass)
-        { key: '3', offset: 4  },  // E4   (808 kick)
-        { key: '4', offset: 8  },  // G#4  (main groove)
-        { key: '5', offset: 9  },  // A4
-        { key: '6', offset: 11 },  // B4
-        { key: '7', offset: 13 },  // C#5
-        { key: '8', offset: 15 },  // D#5
-        { key: '9', offset: 16 },  // E5   (high plink)
+        { key: '1', offset: 4  }, // E4  (low E kick / letter D)
+        { key: '2', offset: 11 }, // B4  (mid chop / letter J)
+        { key: '3', offset: 16 }, // E5  (high E plink / letter ;)
+        { key: '4', offset: 3  }, // D#4 (low D# bass / letter E)
+        { key: '5', offset: 10 }, // A#4 (mid chop / letter U)
+        { key: '6', offset: 15 }, // D#5 (high D# / letter P)
+        { key: '7', offset: 1  }, // C#4 (low C# bass / letter W)
+        { key: '8', offset: 8  }, // G#4 (mid chop / letter Y)
+        { key: '9', offset: 13 }, // C#5 (high C# / letter O)
       ];
 
       // Combined lookup used by getKeyEl / triggerKey
@@ -1032,8 +1066,8 @@
             el.style.flex = '1';
           }
 
-          // In beat-drop mode show the number alias; otherwise show the letter
-          const displayKey = numDef ? numDef.key : (typingDef ? typingDef.key : null);
+          // Default display is the standard typing letter key
+          const displayKey = typingDef ? typingDef.key : null;
           const keyBadge = displayKey ? `<span class="label-key">${displayKey}</span>` : '';
           el.innerHTML = `<span class="label-note">${k.note}</span>${keyBadge}`;
           container.appendChild(el);
@@ -1067,8 +1101,8 @@
             el.style.left = `calc(${(prevWhiteIdx + 1) * (100 / wCount)}% - ${bw / 2}%)`;
           }
 
-          // In beat-drop mode show the number alias; otherwise show the letter
-          const displayKey = numDef ? numDef.key : (typingDef ? typingDef.key : null);
+          // Default display is the standard typing letter key
+          const displayKey = typingDef ? typingDef.key : null;
           const keyBadge = displayKey ? `<span class="label-key">${displayKey}</span>` : '';
           el.innerHTML = `<span class="label-note">${k.note}</span>${keyBadge}`;
           container.appendChild(el);
@@ -1083,6 +1117,24 @@
             }
           }, 30);
         }
+      }
+
+      // Automatically toggles key labels between numbers (during beat drop) and normal letters (when beat drop ends)
+      function updateKeyBadges() {
+        const step = currentSong && currentSong[tutorialState.index];
+        const isNumberStep = step && step.key && /^[1-9]$/.test(step.key);
+
+        document.querySelectorAll('.key').forEach(el => {
+          const badge = el.querySelector('.label-key');
+          if (!badge) return;
+          if (isNumberStep && el.dataset.numKey) {
+            badge.textContent = el.dataset.numKey;
+            badge.classList.add('number-badge');
+          } else if (el.dataset.key) {
+            badge.textContent = el.dataset.key;
+            badge.classList.remove('number-badge');
+          }
+        });
       }
 
       function scrollToMidi(midi) {
@@ -1249,122 +1301,101 @@
       ];
 
       // --- PART 2: THE BEAT DROP & VERSE 1 ---
-      // NUMBER ROW CHEAT SHEET (all keys are neighbours on the top row!):
-      //   3=C#4(bass)  4=D#4(bass)  5=E4(kick)  6=G#4  7=A4  8=B4  9=C#5  0=D#5  -=E5(plink)
-      //
-      // HOW LONG TO HOLD EACH KEY (at 92 BPM):
-      //   beats 0.4  ≈ 0.26 s  → quick TAP  (just press and release immediately)
-      //   beats 0.5  ≈ 0.33 s  → short tap
-      //   beats 0.6  ≈ 0.39 s  → slightly longer tap
-      //   beats 1.0  ≈ 0.65 s  → hold for about half a second
-      //   beats 1.5  ≈ 0.98 s  → hold for about 1 second
-      //   beats 2.0  ≈ 1.30 s  → hold for about 1.3 seconds
-      //   beats 3.0  ≈ 1.96 s  → hold for nearly 2 seconds
+      // Beat Drop Chops: Keys 1 2 3, 4 5 6, 7 8 9 (right next to each other on the top number row)
+      // When Beat Drop ends: Automatically returns to normal letter keys (; P E H Y S O) for Verse 1
       const RUNAWAY_BEAT_DROP = [
-        // NUMBER ROW CHEAT SHEET — 1=low ... 9=high, all right next to each other!
-        //   1=C#4  2=D#4  3=E4(kick)  4=G#4  5=A4  6=B4  7=C#5  8=D#5  9=E5(plink)
-        //
-        // HOW LONG TO HOLD (at 92 BPM):
-        //   beats 0.4 ≈ quick tap    beats 0.6 ≈ short tap
-        //   beats 1.0 ≈ ~0.65s       beats 1.5 ≈ ~1s       beats 2.0 ≈ ~1.3s
+        // 🥁 BEAT DROP PART 1: 808 Kick & "Look at ya!" Chops (Keys 1 2 3)
+        // 808 Kick — tap 1, hold it a beat
+        { key: "1", beats: 1, lyric: "🥁 BOOM! Beat Drops! — hold 1 (~0.65s)" },
 
-        // 808 Kick — tap 3, hold it a beat
-        { key: "3", beats: 1, lyric: "🥁 BOOM! Beat Drops! — hold 3 (~0.65s)" },
-
-        // Rapid "Look at ya!" Chops: 9 → 6 → 4  (tap quickly left→right)
-        { key: "9", beats: 0.4, lyric: "Look at ya! — tap 9 6 4 (quick!)" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        { key: "9", beats: 0.4, lyric: "Look at ya! — tap 9 6 4" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        { key: "9", beats: 0.4, lyric: "Look at ya! — tap 9 6 4" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        { key: "9", beats: 0.4, lyric: "Look at ya! — tap 9 6 4" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        // Snare hit — tap 3
-        { key: "3", beats: 0.6, lyric: "🥁 Snare! — tap 3" },
-
-        { key: "9", beats: 0.4, lyric: "Look at ya! — tap 9 6 4" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        { key: "9", beats: 0.4, lyric: "Look at ya! — tap 9 6 4" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        // Harmonic Descent D# — bass 2, then chops 8 6 4
-        { key: "2", beats: 0.6, lyric: "Bass drop D# — tap 2, then 8 6 4" },
-        { key: "8", beats: 0.4, lyric: "" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-        { key: "8", beats: 0.4, lyric: "" },
-        { key: "6", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        // Harmonic Descent C# — bass 1, then chops 7 5 4
-        { key: "1", beats: 0.6, lyric: "Bass drop C# — tap 1, then 7 5 4" },
-        { key: "7", beats: 0.4, lyric: "" },
-        { key: "5", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-        { key: "7", beats: 0.4, lyric: "" },
-        { key: "5", beats: 0.4, lyric: "" },
-        { key: "4", beats: 0.6, lyric: "" },
-
-        // Cadence — tap 5 5 4 3, then hold 9
-        { key: "5", beats: 0.5, lyric: "Cadence — tap 5 5 4 3, hold 9" },
-        { key: "5", beats: 0.5, lyric: "" },
-        { key: "4", beats: 0.5, lyric: "" },
+        // Rapid "Look at ya!" Chops: 1 → 2 → 3  (three adjacent keys in order!)
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3 (quick tap!)" },
+        { key: "2", beats: 0.4, lyric: "" },
         { key: "3", beats: 0.5, lyric: "" },
-        { key: "9", beats: 1.5, lyric: "Here comes Verse 1... hold 9 (~1s)" },
 
-        // "And I always find..." — hold 4 four times
-        { key: "4", beats: 1, lyric: "And I always find... — hold 4 (~0.65s each)" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        // Snare hit — tap 1
+        { key: "1", beats: 0.6, lyric: "🥁 Snare hit! — tap 1" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        // 🥁 BEAT DROP PART 2: D# Bass Descent & Chops (Keys 4 5 6)
+        { key: "4", beats: 0.6, lyric: "Bass drop D# — tap 4, then 4 5 6" },
+        { key: "4", beats: 0.4, lyric: "" },
+        { key: "5", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.5, lyric: "" },
+        { key: "4", beats: 0.4, lyric: "" },
+        { key: "5", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.5, lyric: "" },
+
+        // 🥁 BEAT DROP PART 3: C# Bass Descent & Chops (Keys 7 8 9)
+        { key: "7", beats: 0.6, lyric: "Bass drop C# — tap 7, then 7 8 9" },
+        { key: "7", beats: 0.4, lyric: "" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "9", beats: 0.5, lyric: "" },
+        { key: "7", beats: 0.4, lyric: "" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "9", beats: 0.5, lyric: "" },
+
+        // 🎤 BEAT DROP ENDS → BACK TO NORMAL KEYS (; P E H Y S O)
+        // Verse 1: Kanye Vocals return to normal home-row letters
+        { key: "Y", beats: 1, lyric: "Beat drop ends! Back to normal keys — hold Y (~0.65s)" },
+        { key: "Y", beats: 1, lyric: "And I always find..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
 
         // "Yeah, I always find somethin' wrong..."
-        { key: "4", beats: 1, lyric: "Yeah, I always find somethin' wrong..." },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "5", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "3", beats: 2, lyric: "hold 3 (~1.3s)" },
+        { key: "Y", beats: 1, lyric: "Yeah, I always find somethin' wrong..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "hold D (~1.3s)" },
 
         // "You been puttin' up wit' my shit just way too long..."
-        { key: "4", beats: 1, lyric: "You been puttin' up wit' my shit just way too long..." },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "5", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "3", beats: 2, lyric: "hold 3 (~1.3s)" },
+        { key: "Y", beats: 1, lyric: "You been puttin' up wit' my shit just way too long..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "hold D (~1.3s)" },
 
         // "I'm so gifted at findin' what I don't like the most..."
-        { key: "4", beats: 1, lyric: "I'm so gifted at findin' what I don't like the most..." },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "5", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "3", beats: 2, lyric: "hold 3 (~1.3s)" },
+        { key: "Y", beats: 1, lyric: "I'm so gifted at findin' what I don't like the most..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "hold D (~1.3s)" },
 
         // "So I think it's time for us to have a toast..."
-        { key: "3", beats: 1, lyric: "So I think it's time for us to have a toast..." },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "5", beats: 1, lyric: "" },
-        { key: "4", beats: 1, lyric: "" },
-        { key: "3", beats: 1, lyric: "" },
-        { key: "2", beats: 1, lyric: "" },
-        { key: "1", beats: 1, lyric: "" },
-        { key: "3", beats: 2, lyric: "Raise a glass! hold 3 (~1.3s)" }
+        { key: "D", beats: 1, lyric: "So I think it's time for us to have a toast..." },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "H", beats: 1, lyric: "" },
+        { key: "Y", beats: 1, lyric: "" },
+        { key: "D", beats: 1, lyric: "" },
+        { key: "E", beats: 1, lyric: "" },
+        { key: "W", beats: 1, lyric: "" },
+        { key: "D", beats: 2, lyric: "Raise a glass! hold D (~1.3s)" }
       ];
 
       // --- PART 4: PIANO RETURNS (strips back to solo piano) ---
@@ -1572,7 +1603,7 @@
           tempoSlider.value = 87;
           tempoLabel.innerText = '87 BPM';
         }
-        tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false };
+        tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false, comboRun: null, comboPos: 0 };
         nextCue();
       }
 
@@ -1587,12 +1618,24 @@
         if (tutorialState.timer) clearTimeout(tutorialState.timer);
         tutorialState.timer = null;
         tutorialState.waitingForInput = false;
+        tutorialState.comboRun = null;
+        tutorialState.comboPos = 0;
         unhighlightKeys();
+        updateKeyBadges();
       }
 
       function getBeatDuration(beats) {
         const bpm = parseInt(document.getElementById("tempo").value) || 87;
         return (60 / bpm) * beats * 1000;
+      }
+
+      function getHoldGuideText(beats) {
+        if (!beats || beats <= 0.45) return "⚡ Quick Tap (~0.25s)";
+        if (beats <= 0.65) return "⏱️ Short Tap (~0.4s)";
+        if (beats <= 1.2)  return "⏱️ Hold ~0.65s (1 beat)";
+        if (beats <= 1.7)  return "⏱️ Hold ~1.0s (1.5 beats)";
+        if (beats <= 2.5)  return "⏱️ Hold ~1.3s (2 beats)";
+        return "⏱️ Hold ~2.0s (3 beats)";
       }
 
       function unhighlightKeys() {
@@ -1618,7 +1661,7 @@
         return run.length >= 2 ? run : null; // only a "combo" if 2+ consecutive fast notes
       }
 
-      // Render the combo bar — current key blazing + next 3 shown in chips (see updateCoachUI)
+      // Render the combo bar — current key blazing + next 3 shown in chips
       function renderComboBar(run, currentPos) {
         const coachTarget = document.getElementById('coach-target');
         coachTarget.classList.add('fast-note');
@@ -1627,16 +1670,39 @@
         const keyLabel = currentItem ? currentItem.step.key : '?';
         const progress = `${currentPos + 1}/${run.length}`;
 
-        // Coach box: just the big key + progress counter — clean and fast to read
-        coachTarget.innerHTML = `<span>${keyLabel}</span><span style="font-size:11px;font-weight:700;opacity:0.7;margin-top:2px;">${progress}</span>`;
+        // Find note name
+        let noteName = '';
+        const numDef = NUMBER_KEY_OFFSETS.find(n => n.key === keyLabel);
+        if (numDef) {
+          const kObj = ALL_KEYS_88.find(k => k.midi === (baseOctave + 1) * 12 + numDef.offset);
+          if (kObj) noteName = kObj.note;
+        } else {
+          const typingDef = TYPING_KEY_OFFSETS.find(t => t.key === keyLabel.toUpperCase());
+          if (typingDef) {
+            const kObj = ALL_KEYS_88.find(k => k.midi === (baseOctave + 1) * 12 + typingDef.offset);
+            if (kObj) noteName = kObj.note;
+          }
+        }
+
+        // Coach box: just the big key + note name + progress counter
+        coachTarget.innerHTML = `<span>${keyLabel}</span><span style="font-size:11px;font-weight:700;opacity:0.8;margin-top:2px;">${noteName} · ${progress}</span>`;
+
+        // Update hold guide text
+        const holdGuideEl = document.getElementById('coach-hold-guide');
+        if (holdGuideEl) {
+          holdGuideEl.innerText = getHoldGuideText(currentItem ? currentItem.step.beats : 0.4);
+        }
 
         // Show the lyric for the current note
         const lyricEl = document.getElementById('coach-lyric');
         if (currentItem && currentItem.step.lyric) lyricEl.innerText = currentItem.step.lyric;
 
-        // Keyboard: current key bright, next 3 fading + order sequence badges on the far edge
+        // Ensure key labels show numbers during combo/beat drop
+        updateKeyBadges();
+
+        // Keyboard: current key bright, next 3 fading + order sequence badges
         unhighlightKeys();
-        const keyEl = getKeyEl(keyLabel.toUpperCase());
+        const keyEl = getKeyEl(keyLabel);
         if (keyEl) {
           keyEl.classList.add('target', 'combo-active');
           const badge = document.createElement('span');
@@ -1647,7 +1713,7 @@
         for (let i = 1; i <= 3; i++) {
           const ahead = run[currentPos + i];
           if (!ahead) break;
-          const aEl = getKeyEl(ahead.step.key.toUpperCase());
+          const aEl = getKeyEl(ahead.step.key);
           if (aEl) {
             aEl.classList.add(`combo-next-${i}`);
             let badge = aEl.querySelector('.combo-order-badge');
@@ -1666,6 +1732,8 @@
 
       function updateCoachUI(step) {
         if (!step) return;
+
+        updateKeyBadges();
 
         // If we're inside a combo run, delegate to the combo renderer
         if (tutorialState.comboRun) {
@@ -1691,8 +1759,19 @@
           return;
         }
 
-        const cfg = KEYS_CONFIG_17.find(k => k.key === (step.key || '').toUpperCase());
-        const noteName = cfg ? cfg.note : '';
+        let noteName = '';
+        const numDef = NUMBER_KEY_OFFSETS.find(n => n.key === step.key);
+        if (numDef) {
+          const kObj = ALL_KEYS_88.find(k => k.midi === (baseOctave + 1) * 12 + numDef.offset);
+          if (kObj) noteName = kObj.note;
+        } else {
+          const typingDef = TYPING_KEY_OFFSETS.find(t => t.key === (step.key || '').toUpperCase());
+          if (typingDef) {
+            const kObj = ALL_KEYS_88.find(k => k.midi === (baseOctave + 1) * 12 + typingDef.offset);
+            if (kObj) noteName = kObj.note;
+          }
+        }
+
         const isFast = step.beats && step.beats <= 0.6;
 
         const speedBadge = document.getElementById('coach-speed-badge');
@@ -1711,6 +1790,12 @@
           coachTarget.classList.add('fast-note');
         } else {
           coachTarget.classList.remove('fast-note');
+        }
+
+        // Update hold guide text
+        const holdGuideEl = document.getElementById('coach-hold-guide');
+        if (holdGuideEl) {
+          holdGuideEl.innerText = getHoldGuideText(step.beats);
         }
 
         // Update lyric prompt
@@ -1772,7 +1857,7 @@
         // For normal (non-combo) notes, highlight the single target key
         if (!tutorialState.comboRun) {
           unhighlightKeys();
-          const keyEl = getKeyEl(step.key.toUpperCase());
+          const keyEl = getKeyEl(step.key);
           if (keyEl) {
             keyEl.classList.add('target');
             if (isFast) keyEl.classList.add('fast-key');
@@ -1802,10 +1887,13 @@
       }
 
       function getKeyEl(keyChar) {
-        // Match on the primary letter key OR the number-row alias stored in data-num-key
-        return Array.from(document.querySelectorAll('.key')).find(el =>
-          el.dataset.key === keyChar || el.dataset.numKey === keyChar
-        );
+        if (!keyChar) return null;
+        const target = keyChar.toUpperCase();
+        return Array.from(document.querySelectorAll('.key')).find(el => {
+          const lk = el.dataset.key ? el.dataset.key.toUpperCase() : null;
+          const nk = el.dataset.numKey;
+          return lk === target || nk === keyChar;
+        });
       }
 
       // Trigger by element directly (for clicks, touches, glissando)
@@ -1830,19 +1918,24 @@
 
         if (currentMode === 'tutorial' && tutorialState.waitingForInput) {
           const step = currentSong[tutorialState.index];
-          const pressedKeyChar = el.dataset.key;      // letter key (e.g. "D")
-          const pressedNumKey  = el.dataset.numKey;   // number alias (e.g. "3")
+          if (step && step.key) {
+            const pressedLetter = el.dataset.key ? el.dataset.key.toUpperCase() : '';
+            const pressedNum    = el.dataset.numKey || '';
+            const stepKey       = step.key;
+            const stepUpper     = stepKey.toUpperCase();
 
-          const letterMatch = pressedKeyChar && pressedKeyChar.toUpperCase() === step.key.toUpperCase();
-          const numberMatch = pressedNumKey  && pressedNumKey  === step.key;
-          if (step && step.key && (letterMatch || numberMatch)) {
-            handleCorrectHit();
+            const letterMatch = pressedLetter && pressedLetter === stepUpper;
+            const numberMatch = pressedNum && pressedNum === stepKey;
+
+            if (letterMatch || numberMatch) {
+              handleCorrectHit();
+            }
           }
         }
       }
 
       function releaseKey(letter) {
-        const isNumberKey = NUMBER_KEY_OFFSETS.some(n => n.key === letter);
+        const isNumberKey = /^[1-9]$/.test(letter);
         if (!isNumberKey) letter = letter.toUpperCase();
         const keyEl = getKeyEl(letter);
         if (keyEl) {
@@ -1859,8 +1952,7 @@
 
       // Trigger by physical keyboard key letter
       function triggerKey(letter) {
-        // Keep number-row keys as-is; uppercase only letters
-        const isNumberKey = NUMBER_KEY_OFFSETS.some(n => n.key === letter);
+        const isNumberKey = /^[1-9]$/.test(letter);
         if (!isNumberKey) letter = letter.toUpperCase();
 
         // Support Octave Shift via Z and X in Free Play
@@ -1964,8 +2056,10 @@
       // Physical Keyboard Listener
       window.addEventListener('keydown', e => {
         if (e.repeat || !document.getElementById('screen-piano').classList.contains('active')) return;
-        // Prevent browser from scrolling/switching tabs when number keys are used
-        if (NUMBER_KEY_OFFSETS.some(n => n.key === e.key)) e.preventDefault();
+        // Prevent browser scrolling or quick search when numbers or punctuation are pressed
+        if (/^[1-9]$/.test(e.key) || e.key === ';' || e.key === "'") {
+          e.preventDefault();
+        }
         triggerKey(e.key);
       });
 
