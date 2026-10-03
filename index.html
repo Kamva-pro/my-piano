@@ -782,8 +782,8 @@
             <span>Part:</span>
             <select id="section-select" class="styled-select">
               <option value="full">Full Song (All 5 Sections)</option>
-              <option value="intro">Part 1: Solo Piano Intro (56 notes)</option>
-              <option value="beatdrop">🥁 Part 2: Fast Beat Drop & Verse 1</option>
+              <option value="intro">Part 1: Solo Piano Intro (Quick Start: ; ; ; D)</option>
+              <option value="beatdrop">🥁 Part 2: Extended Beat Drop (2 Loops) & Verse 1</option>
               <option value="chorus">Part 3: Vocal "Toast" Chorus</option>
               <option value="pianortn">🎹 Part 4: Piano Returns (Solitary)</option>
               <option value="outro">⚡ Part 5: Fast Outro Drive (raise BPM!)</option>
@@ -1188,13 +1188,11 @@
 
       // --- COMPLETE RUNAWAY BY KANYE WEST (Intro + "Toast" Chorus) ---
       const RUNAWAY_INTRO_CYCLE = [
-        // Bars 1-4: 15x High E (;) -> 1x Low E (D)
-        ...Array(15).fill(null).map((_, i) => ({
-          key: ";",
-          beats: 1,
-          lyric: i === 0 ? "♪ (Intro - The Solitary Plink)" : ""
-        })),
-        { key: "D", beats: 1, lyric: "Octave Drop (E4)" },
+        // 3x High E (;) -> 1x Low E (D) — fast start straight to the melody!
+        { key: ";", beats: 1, lyric: "♪ (Intro) — tap ;" },
+        { key: ";", beats: 1, lyric: "" },
+        { key: ";", beats: 1, lyric: "" },
+        { key: "D", beats: 1, lyric: "Octave Drop (E4) — tap D" },
 
         // Bar 5: 3x High D# (P) -> 1x Low D# (E)
         { key: "P", beats: 1, lyric: "" },
@@ -1354,6 +1352,56 @@
         { key: "8", beats: 0.4, lyric: "" },
         { key: "9", beats: 0.5, lyric: "" },
 
+        // 🔁 BEAT DROP LOOP 2: Extended groove (same flow, double the energy!)
+        // 808 Kick — tap 1, hold it a beat
+        { key: "1", beats: 1, lyric: "🔥 Loop 2 — Keep the groove goin'! — hold 1 (~0.65s)" },
+
+        // Rapid "Look at ya!" Chops: 1 → 2 → 3
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        // Snare hit — tap 1
+        { key: "1", beats: 0.6, lyric: "🥁 Snare hit! — tap 1" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        { key: "1", beats: 0.4, lyric: "Look at ya! — tap 1 2 3" },
+        { key: "2", beats: 0.4, lyric: "" },
+        { key: "3", beats: 0.5, lyric: "" },
+
+        // D# Bass Descent & Chops (Keys 4 5 6)
+        { key: "4", beats: 0.6, lyric: "Bass drop D# — tap 4, then 4 5 6" },
+        { key: "4", beats: 0.4, lyric: "" },
+        { key: "5", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.5, lyric: "" },
+        { key: "4", beats: 0.4, lyric: "" },
+        { key: "5", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.5, lyric: "" },
+
+        // C# Bass Descent & Chops (Keys 7 8 9)
+        { key: "7", beats: 0.6, lyric: "Bass drop C# — tap 7, then 7 8 9" },
+        { key: "7", beats: 0.4, lyric: "" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "9", beats: 0.5, lyric: "" },
+        { key: "7", beats: 0.4, lyric: "" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "9", beats: 0.5, lyric: "" },
+
         // 🎤 BEAT DROP ENDS → BACK TO NORMAL KEYS (; P E H Y S O)
         // Verse 1: Kanye Vocals return to normal home-row letters
         { key: "Y", beats: 1, lyric: "Beat drop ends! Back to normal keys — hold Y (~0.65s)" },
@@ -1400,12 +1448,11 @@
 
       // --- PART 4: PIANO RETURNS (strips back to solo piano) ---
       // After the chorus, the beat drops out and silence falls.
-      // The solitary high piano plink returns alone — full circle.
+      // 3x High E plinks (;) -> Low E (D)
       const RUNAWAY_PIANO_RETURN = [
-        ...Array(15).fill(null).map((_, i) => ({
-          key: ";", beats: 1,
-          lyric: i === 0 ? "🎹 Beat Cuts Out — Back to Solitary Piano..." : ""
-        })),
+        { key: ";", beats: 1, lyric: "🎹 Beat Cuts Out — Back to Solitary Piano..." },
+        { key: ";", beats: 1, lyric: "" },
+        { key: ";", beats: 1, lyric: "" },
         { key: "D", beats: 1, lyric: "Low E4" },
         { key: "P", beats: 1, lyric: "" },
         { key: "P", beats: 1, lyric: "" },
@@ -1424,10 +1471,9 @@
       // --- PART 5: THE FAST OUTRO DRIVE ---
       function makeOutroCycle(lyricLabel) {
         return [
-          ...Array(15).fill(null).map((_, i) => ({
-            key: ";", beats: 0.5,
-            lyric: i === 0 ? lyricLabel : ""
-          })),
+          { key: ";", beats: 0.5, lyric: lyricLabel },
+          { key: ";", beats: 0.5, lyric: "" },
+          { key: ";", beats: 0.5, lyric: "" },
           { key: "D", beats: 0.5, lyric: "" },
           { key: "P", beats: 0.5, lyric: "" },
           { key: "P", beats: 0.5, lyric: "" },
