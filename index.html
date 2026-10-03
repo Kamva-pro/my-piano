@@ -943,11 +943,36 @@
         { key: ';', offset: 16 }   // E (+1)
       ];
 
+      // Beat-Drop Number Row: keys 3-4-5-6-7-8-9-0- map to the SAME 9 notes used in the Beat Drop.
+      // All keys are physically adjacent on the top number row — easy to reach in a rush!
+      //  3 = C#4  (low bass)   4 = D#4   5 = E4
+      //  6 = G#4               7 = A4    8 = B4
+      //  9 = C#5               0 = D#5   - = E5  (high plink)
+      const NUMBER_KEY_OFFSETS = [
+        { key: '3', offset: 1  },  // C#4
+        { key: '4', offset: 3  },  // D#4
+        { key: '5', offset: 4  },  // E4
+        { key: '6', offset: 8  },  // G#4
+        { key: '7', offset: 9  },  // A4
+        { key: '8', offset: 11 },  // B4
+        { key: '9', offset: 13 },  // C#5
+        { key: '0', offset: 15 },  // D#5
+        { key: '-', offset: 16 },  // E5
+      ];
+
+      // Combined lookup used by getKeyEl / triggerKey
+      const ALL_KEY_OFFSETS = [...TYPING_KEY_OFFSETS, ...NUMBER_KEY_OFFSETS];
+
       // Default 17 keys config for tutorial (C4 to E5)
-      const KEYS_CONFIG_17 = ALL_KEYS_88.filter(k => k.midi >= 60 && k.midi <= 76).map((k, i) => ({
-        ...k,
-        key: TYPING_KEY_OFFSETS[i].key
-      }));
+      // Each key gets BOTH a letter key AND its number-row alias (for the Beat Drop section)
+      const KEYS_CONFIG_17 = ALL_KEYS_88.filter(k => k.midi >= 60 && k.midi <= 76).map((k, i) => {
+        const numAlias = NUMBER_KEY_OFFSETS.find(n => n.offset === TYPING_KEY_OFFSETS[i].offset);
+        return {
+          ...k,
+          key: TYPING_KEY_OFFSETS[i].key,
+          numKey: numAlias ? numAlias.key : null
+        };
+      });
 
       let currentView = '88'; // '88', '61', or '17'
       let baseOctave = 4; // C4 is middle C
@@ -998,6 +1023,11 @@
           if (typingDef) {
             el.dataset.key = typingDef.key;
           }
+          // Also store the number-row alias so getKeyEl can match it
+          const numDef = NUMBER_KEY_OFFSETS.find(n => n.offset === offset);
+          if (numDef) {
+            el.dataset.numKey = numDef.key;
+          }
 
           if (isScrollable) {
             el.style.width = whiteKeyWidth + 'px';
@@ -1020,6 +1050,11 @@
           const typingDef = TYPING_KEY_OFFSETS.find(t => t.offset === offset);
           if (typingDef) {
             el.dataset.key = typingDef.key;
+          }
+          // Also store the number-row alias
+          const numDef = NUMBER_KEY_OFFSETS.find(n => n.offset === offset);
+          if (numDef) {
+            el.dataset.numKey = numDef.key;
           }
 
           const prevWhiteIdx = whites.findIndex(w => w.midi === k.midi - 1);
@@ -1213,107 +1248,115 @@
       ];
 
       // --- PART 2: THE BEAT DROP & VERSE 1 ---
-      // The beat drops! Heavy bass & snapping percussion enter, followed by Kanye's Verse 1:
-      // "And I always find, yeah I always find somethin' wrong..."
+      // NUMBER ROW CHEAT SHEET (all keys are neighbours on the top row!):
+      //   3=C#4(bass)  4=D#4(bass)  5=E4(kick)  6=G#4  7=A4  8=B4  9=C#5  0=D#5  -=E5(plink)
+      //
+      // HOW LONG TO HOLD EACH KEY (at 92 BPM):
+      //   beats 0.4  ≈ 0.26 s  → quick TAP  (just press and release immediately)
+      //   beats 0.5  ≈ 0.33 s  → short tap
+      //   beats 0.6  ≈ 0.39 s  → slightly longer tap
+      //   beats 1.0  ≈ 0.65 s  → hold for about half a second
+      //   beats 1.5  ≈ 0.98 s  → hold for about 1 second
+      //   beats 2.0  ≈ 1.30 s  → hold for about 1.3 seconds
+      //   beats 3.0  ≈ 1.96 s  → hold for nearly 2 seconds
       const RUNAWAY_BEAT_DROP = [
-        // --- Fast Beat Emulation: 808 Kick & Rapid "Look at ya!" chops ---
-        { key: "D", beats: 1, lyric: "🥁 BOOM! Beat Drops! (808 Kick)" },
+        // 808 Kick — hold 5 for about half a second
+        { key: "5", beats: 1, lyric: "🥁 BOOM! Beat Drops! — hold 5 (~0.65s)" },
 
-        // Rapid "Look at ya!" Chops (E5 -> B4 -> G#4)
-        { key: ";", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        // Rapid "Look at ya!" Chops: - → 8 → 6  (quick taps in a row!)
+        { key: "-", beats: 0.4, lyric: "Look at ya! — tap - 8 6 (quick!)" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        { key: ";", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        { key: "-", beats: 0.4, lyric: "Look at ya! — tap - 8 6" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        { key: ";", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        { key: "-", beats: 0.4, lyric: "Look at ya! — tap - 8 6" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        { key: ";", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        { key: "-", beats: 0.4, lyric: "Look at ya! — tap - 8 6" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        // Driving 808 snare & bass kick
-        { key: "D", beats: 0.6, lyric: "🥁 Snare & Kick!" },
+        // Driving snare/kick — quick tap on 5
+        { key: "5", beats: 0.6, lyric: "🥁 Snare & Kick! — tap 5 (~0.4s)" },
 
-        { key: ";", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        { key: "-", beats: 0.4, lyric: "Look at ya! — tap - 8 6" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        { key: ";", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        { key: "-", beats: 0.4, lyric: "Look at ya! — tap - 8 6" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        // Beat Harmonic Descent (D# chord)
-        { key: "E", beats: 0.6, lyric: "Bass drop (D#)" },
-        { key: "P", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
-        { key: "P", beats: 0.4, lyric: "Look at ya!" },
-        { key: "J", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        // Harmonic Descent D# — 4 (bass) then 0 8 6 chops
+        { key: "4", beats: 0.6, lyric: "Bass drop D# — tap 4 then 0 8 6" },
+        { key: "0", beats: 0.4, lyric: "" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
+        { key: "0", beats: 0.4, lyric: "" },
+        { key: "8", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        // Beat Harmonic Descent (C# chord)
-        { key: "W", beats: 0.6, lyric: "Bass drop (C#)" },
-        { key: "O", beats: 0.4, lyric: "Look at ya!" },
-        { key: "H", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
-        { key: "O", beats: 0.4, lyric: "Look at ya!" },
-        { key: "H", beats: 0.4, lyric: "" },
-        { key: "Y", beats: 0.6, lyric: "" },
+        // Harmonic Descent C# — 3 (bass) then 9 7 6 chops
+        { key: "3", beats: 0.6, lyric: "Bass drop C# — tap 3 then 9 7 6" },
+        { key: "9", beats: 0.4, lyric: "" },
+        { key: "7", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
+        { key: "9", beats: 0.4, lyric: "" },
+        { key: "7", beats: 0.4, lyric: "" },
+        { key: "6", beats: 0.6, lyric: "" },
 
-        // Cadence into Verse 1
-        { key: "H", beats: 0.5, lyric: "Cadence" },
-        { key: "H", beats: 0.5, lyric: "" },
-        { key: "Y", beats: 0.5, lyric: "" },
-        { key: "D", beats: 0.5, lyric: "" },
-        { key: ";", beats: 1.5, lyric: "Here comes Verse 1..." },
+        // Cadence — quick taps: 7 7 6 5, then hold -
+        { key: "7", beats: 0.5, lyric: "Cadence — tap 7 7 6 5, hold -" },
+        { key: "7", beats: 0.5, lyric: "" },
+        { key: "6", beats: 0.5, lyric: "" },
+        { key: "5", beats: 0.5, lyric: "" },
+        { key: "-", beats: 1.5, lyric: "Here comes Verse 1... hold - (~1s)" },
 
-        // "And I always find..."
-        { key: "Y", beats: 1, lyric: "And I always find..." },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
+        // "And I always find..." — hold 6 four times (~0.65s each)
+        { key: "6", beats: 1, lyric: "And I always find... — hold 6 (~0.65s each)" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
 
         // "Yeah, I always find somethin' wrong..."
-        { key: "Y", beats: 1, lyric: "Yeah, I always find somethin' wrong..." },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "H", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "D", beats: 2, lyric: "" },
+        { key: "6", beats: 1, lyric: "Yeah, I always find somethin' wrong..." },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "7", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "5", beats: 2, lyric: "hold 5 (~1.3s)" },
 
         // "You been puttin' up wit' my shit just way too long..."
-        { key: "Y", beats: 1, lyric: "You been puttin' up wit' my shit just way too long..." },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "H", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "D", beats: 2, lyric: "" },
+        { key: "6", beats: 1, lyric: "You been puttin' up wit' my shit just way too long..." },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "7", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "5", beats: 2, lyric: "hold 5 (~1.3s)" },
 
         // "I'm so gifted at findin' what I don't like the most..."
-        { key: "Y", beats: 1, lyric: "I'm so gifted at findin' what I don't like the most..." },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "H", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "T", beats: 2, lyric: "" },
+        { key: "6", beats: 1, lyric: "I'm so gifted at findin' what I don't like the most..." },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "7", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "F", beats: 2, lyric: "hold F (~1.3s)" },
 
         // "So I think it's time for us to have a toast..."
-        { key: "T", beats: 1, lyric: "So I think it's time for us to have a toast..." },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "H", beats: 1, lyric: "" },
-        { key: "Y", beats: 1, lyric: "" },
-        { key: "T", beats: 1, lyric: "" },
-        { key: "D", beats: 1, lyric: "" },
-        { key: "E", beats: 1, lyric: "" },
-        { key: "D", beats: 2, lyric: "Raise a glass!" }
+        { key: "F", beats: 1, lyric: "So I think it's time for us to have a toast..." },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "7", beats: 1, lyric: "" },
+        { key: "6", beats: 1, lyric: "" },
+        { key: "F", beats: 1, lyric: "" },
+        { key: "5", beats: 1, lyric: "" },
+        { key: "4", beats: 1, lyric: "" },
+        { key: "5", beats: 2, lyric: "Raise a glass! hold 5 (~1.3s)" }
       ];
 
       // --- PART 4: PIANO RETURNS (strips back to solo piano) ---
@@ -1751,7 +1794,10 @@
       }
 
       function getKeyEl(keyChar) {
-        return Array.from(document.querySelectorAll('.key')).find(el => el.dataset.key === keyChar);
+        // Match on the primary letter key OR the number-row alias stored in data-num-key
+        return Array.from(document.querySelectorAll('.key')).find(el =>
+          el.dataset.key === keyChar || el.dataset.numKey === keyChar
+        );
       }
 
       // Trigger by element directly (for clicks, touches, glissando)
@@ -1785,13 +1831,14 @@
       }
 
       function releaseKey(letter) {
-        letter = letter.toUpperCase();
+        const isNumberKey = NUMBER_KEY_OFFSETS.some(n => n.key === letter);
+        if (!isNumberKey) letter = letter.toUpperCase();
         const keyEl = getKeyEl(letter);
         if (keyEl) {
           const midi = parseInt(keyEl.dataset.midi);
           stopNoteEngine(midi);
         } else {
-          const offsetDef = TYPING_KEY_OFFSETS.find(t => t.key === letter);
+          const offsetDef = ALL_KEY_OFFSETS.find(t => t.key === letter);
           if (offsetDef) {
             const targetMidi = (baseOctave + 1) * 12 + offsetDef.offset;
             stopNoteEngine(targetMidi);
@@ -1801,7 +1848,9 @@
 
       // Trigger by physical keyboard key letter
       function triggerKey(letter) {
-        letter = letter.toUpperCase();
+        // Keep number-row keys as-is; uppercase only letters
+        const isNumberKey = NUMBER_KEY_OFFSETS.some(n => n.key === letter);
+        if (!isNumberKey) letter = letter.toUpperCase();
 
         // Support Octave Shift via Z and X in Free Play
         if (currentMode === 'free') {
@@ -1823,13 +1872,13 @@
           }
         }
 
-        // Find key element mapped to this letter
+        // Find key element mapped to this letter (checks both letter key & number-row alias)
         const keyEl = getKeyEl(letter);
         if (keyEl) {
           triggerKeyElement(keyEl);
         } else {
           // If not visible on current screen, calculate frequency and play anyway
-          const offsetDef = TYPING_KEY_OFFSETS.find(t => t.key === letter);
+          const offsetDef = ALL_KEY_OFFSETS.find(t => t.key === letter);
           if (offsetDef) {
             const targetMidi = (baseOctave + 1) * 12 + offsetDef.offset;
             const kObj = ALL_KEYS_88.find(k => k.midi === targetMidi);
@@ -1904,6 +1953,8 @@
       // Physical Keyboard Listener
       window.addEventListener('keydown', e => {
         if (e.repeat || !document.getElementById('screen-piano').classList.contains('active')) return;
+        // Prevent browser from scrolling/switching tabs when number keys are used
+        if (NUMBER_KEY_OFFSETS.some(n => n.key === e.key)) e.preventDefault();
         triggerKey(e.key);
       });
 
