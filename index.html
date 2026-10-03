@@ -1035,7 +1035,9 @@
             el.style.flex = '1';
           }
 
-          const keyBadge = typingDef ? `<span class="label-key">${typingDef.key}</span>` : '';
+          // In beat-drop mode show the number alias; otherwise show the letter
+          const displayKey = numDef ? numDef.key : (typingDef ? typingDef.key : null);
+          const keyBadge = displayKey ? `<span class="label-key">${displayKey}</span>` : '';
           el.innerHTML = `<span class="label-note">${k.note}</span>${keyBadge}`;
           container.appendChild(el);
         });
@@ -1068,7 +1070,9 @@
             el.style.left = `calc(${(prevWhiteIdx + 1) * (100 / wCount)}% - ${bw / 2}%)`;
           }
 
-          const keyBadge = typingDef ? `<span class="label-key">${typingDef.key}</span>` : '';
+          // In beat-drop mode show the number alias; otherwise show the letter
+          const displayKey = numDef ? numDef.key : (typingDef ? typingDef.key : null);
+          const keyBadge = displayKey ? `<span class="label-key">${displayKey}</span>` : '';
           el.innerHTML = `<span class="label-note">${k.note}</span>${keyBadge}`;
           container.appendChild(el);
         });
