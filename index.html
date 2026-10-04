@@ -342,8 +342,16 @@
     }
 
     @keyframes pulseFast {
-      from { transform: scale(0.96); opacity: 0.85; }
-      to { transform: scale(1.04); opacity: 1; filter: brightness(1.25); }
+      from {
+        transform: scale(0.96);
+        opacity: 0.85;
+      }
+
+      to {
+        transform: scale(1.04);
+        opacity: 1;
+        filter: brightness(1.25);
+      }
     }
 
     #coach-target.fast-note {
@@ -355,8 +363,13 @@
     }
 
     @keyframes targetPulse {
-      from { transform: scale(1); }
-      to { transform: scale(1.06); }
+      from {
+        transform: scale(1);
+      }
+
+      to {
+        transform: scale(1.06);
+      }
     }
 
     .key.target.fast-key {
@@ -367,8 +380,15 @@
     }
 
     @keyframes fastKeyPulse {
-      from { transform: translateY(0); filter: brightness(1); }
-      to { transform: translateY(3px); filter: brightness(1.35); }
+      from {
+        transform: translateY(0);
+        filter: brightness(1);
+      }
+
+      to {
+        transform: translateY(3px);
+        filter: brightness(1.35);
+      }
     }
 
     /* Simultaneous Fast Combo Styling */
@@ -383,21 +403,26 @@
 
     /* Next 3 upcoming keys — subtle fade by distance */
     .key.combo-next-1 {
-      background: linear-gradient(180deg, rgba(255,165,0,0.38), rgba(255,80,0,0.45)) !important;
-      border: 2px dashed rgba(255,165,0,0.9) !important;
-      box-shadow: 0 0 14px rgba(255,165,0,0.55) !important;
-      position: relative; z-index: 8;
+      background: linear-gradient(180deg, rgba(255, 165, 0, 0.38), rgba(255, 80, 0, 0.45)) !important;
+      border: 2px dashed rgba(255, 165, 0, 0.9) !important;
+      box-shadow: 0 0 14px rgba(255, 165, 0, 0.55) !important;
+      position: relative;
+      z-index: 8;
     }
+
     .key.combo-next-2 {
-      background: linear-gradient(180deg, rgba(255,165,0,0.22), rgba(255,80,0,0.28)) !important;
-      border: 1.5px dashed rgba(255,165,0,0.55) !important;
-      box-shadow: 0 0 8px rgba(255,165,0,0.3) !important;
-      position: relative; z-index: 7;
+      background: linear-gradient(180deg, rgba(255, 165, 0, 0.22), rgba(255, 80, 0, 0.28)) !important;
+      border: 1.5px dashed rgba(255, 165, 0, 0.55) !important;
+      box-shadow: 0 0 8px rgba(255, 165, 0, 0.3) !important;
+      position: relative;
+      z-index: 7;
     }
+
     .key.combo-next-3 {
-      background: linear-gradient(180deg, rgba(255,165,0,0.12), rgba(255,80,0,0.16)) !important;
-      border: 1px dashed rgba(255,165,0,0.3) !important;
-      position: relative; z-index: 6;
+      background: linear-gradient(180deg, rgba(255, 165, 0, 0.12), rgba(255, 80, 0, 0.16)) !important;
+      border: 1px dashed rgba(255, 165, 0, 0.3) !important;
+      position: relative;
+      z-index: 6;
     }
 
     /* Fast Combo Sequence Order Badges on Piano Keys (Top/Far Edge) */
@@ -452,8 +477,13 @@
     }
 
     @keyframes badgePulse {
-      from { transform: translateX(-50%) scale(1); }
-      to { transform: translateX(-50%) scale(1.12); }
+      from {
+        transform: translateX(-50%) scale(1);
+      }
+
+      to {
+        transform: translateX(-50%) scale(1.12);
+      }
     }
 
     /* Hide the musical note label on combo keys so the order badge has full visibility */
@@ -745,6 +775,63 @@
       color: var(--gold);
       margin: 10px 0;
     }
+
+    /* ===== In The Morning — Sideline Story theme (warm locker-room sepia, dawn amber, letterman brick) ===== */
+    body.theme-morning {
+      --bg: #120c08;
+      --panel: rgba(40, 27, 18, 0.9);
+      --ink: #f3e7cf;
+      --muted: #b3a28a;
+      --gold: #e3a34a;
+      --key-white: #efe2c6;
+      --key-black: #3a1f17;
+    }
+
+    body.theme-morning .card,
+    body.theme-morning .panel-box {
+      border-color: rgba(227, 163, 74, 0.35);
+    }
+
+    body.theme-morning .piano-wrapper {
+      background: #1a110c;
+      border-color: rgba(243, 231, 207, 0.14);
+    }
+
+    body.theme-morning #keyboard-container {
+      background: #0e0805;
+    }
+
+    .key.m-key {
+      border-radius: 0 0 9px 9px;
+      border-color: #2a1a11;
+      box-shadow: inset 0 -10px 12px rgba(0, 0, 0, 0.22);
+    }
+
+    .key.m-low {
+      background: #b5513a;
+    }
+
+    .key.m-mid {
+      background: #dba95c;
+    }
+
+    .key.m-high {
+      background: #f1e6cc;
+    }
+
+    .key.m-key.active {
+      filter: brightness(0.82);
+      transform: translateY(2px);
+    }
+
+    .key.m-low .label-note {
+      color: #f6dccb;
+    }
+
+    .key.m-mid .label-note,
+    .key.m-high .label-note {
+      color: #5a3c22;
+    }
   </style>
 </head>
 
@@ -761,6 +848,11 @@
     <div class="card" id="btnRunaway">
       <h3>Runaway — Kanye West (Tutorial)</h3>
       <span>Full Song: Intro • Beat Drop & Verse • Chorus • Piano Returns • Fast Outro</span>
+    </div>
+
+    <div class="card" id="btnMorning">
+      <h3>In The Morning — J. Cole ft. Drake (Tutorial)</h3>
+      <span>11 song-tailored keys • Intro Riff • Verse • Bridge • Hook &amp; Outro</span>
     </div>
 
     <div class="card" id="btnFreePlay">
@@ -805,7 +897,8 @@
           <div class="controls-row">
             <span>Octave:</span>
             <button class="nav-btn" id="btnOctDown" title="Shift Down (Z)">◀ Z</button>
-            <span id="octave-label" style="min-width: 30px; text-align: center; color: var(--gold); font-weight: 800;">C4</span>
+            <span id="octave-label"
+              style="min-width: 30px; text-align: center; color: var(--gold); font-weight: 800;">C4</span>
             <button class="nav-btn" id="btnOctUp" title="Shift Up (X)">X ▶</button>
           </div>
           <div class="controls-row">
@@ -936,7 +1029,7 @@
           voice.gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.4);
           voice.osc.stop(now + 0.45);
           voice.subOsc.stop(now + 0.45);
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // --- ALL 88 KEYS DEFINITION ---
@@ -980,14 +1073,14 @@
       // Group 2: 4 5 6 (D# Bass Descent: D#4, A#4, D#5)
       // Group 3: 7 8 9 (C# Bass Descent: C#4, G#4, C#5)
       const NUMBER_KEY_OFFSETS = [
-        { key: '1', offset: 4  }, // E4  (low E kick / letter D)
+        { key: '1', offset: 4 }, // E4  (low E kick / letter D)
         { key: '2', offset: 11 }, // B4  (mid chop / letter J)
         { key: '3', offset: 16 }, // E5  (high E plink / letter ;)
-        { key: '4', offset: 3  }, // D#4 (low D# bass / letter E)
+        { key: '4', offset: 3 }, // D#4 (low D# bass / letter E)
         { key: '5', offset: 10 }, // A#4 (mid chop / letter U)
         { key: '6', offset: 15 }, // D#5 (high D# / letter P)
-        { key: '7', offset: 1  }, // C#4 (low C# bass / letter W)
-        { key: '8', offset: 8  }, // G#4 (mid chop / letter Y)
+        { key: '7', offset: 1 }, // C#4 (low C# bass / letter W)
+        { key: '8', offset: 8 }, // G#4 (mid chop / letter Y)
         { key: '9', offset: 13 }, // C#5 (high C# / letter O)
       ];
 
@@ -1005,12 +1098,19 @@
         };
       });
 
+      // In The Morning: 11 tailored keys, low -> high across the home row
+      const MORNING_NOTE_KEY = { 'B3': 'A', 'D#4': 'S', 'F#4': 'D', 'G#4': 'F', 'A#4': 'G', 'B4': 'H', 'C#5': 'J', 'D#5': 'K', 'B5': 'L', 'C#6': ';', 'D#6': "'" };
+      const KEYS_MORNING = Object.entries(MORNING_NOTE_KEY).map(([n, k]) => ({ ...ALL_KEYS_88.find(x => x.note === n), key: k, isBlack: false }));
+      function morningNoteName(k) { const e = KEYS_MORNING.find(x => x.key === (k || '').toUpperCase()); return e ? e.note : ''; }
+      let currentSongId = 'runaway';
+      let fastMax = 0.6; // beats <= fastMax count as "fast chops"
+
       let currentView = '88'; // '88', '61', or '17'
       let baseOctave = 4; // C4 is middle C
 
       function getVisibleKeys() {
         if (currentMode === 'tutorial') {
-          return KEYS_CONFIG_17;
+          return currentSongId === 'morning' ? KEYS_MORNING : KEYS_CONFIG_17;
         }
         if (currentView === '17') {
           const baseMidi = (baseOctave + 1) * 12;
@@ -1025,6 +1125,19 @@
       function buildKeyboard() {
         const container = document.getElementById('keyboard-container');
         container.innerHTML = '';
+
+        if (currentMode === 'tutorial' && currentSongId === 'morning') {
+          container.classList.remove('scrollable');
+          KEYS_MORNING.forEach(k => {
+            const el = document.createElement('div');
+            const reg = k.midi <= 68 ? 'm-low' : k.midi <= 75 ? 'm-mid' : 'm-high';
+            el.className = 'key white m-key ' + reg;
+            el.dataset.midi = k.midi; el.dataset.key = k.key; el.style.flex = '1';
+            el.innerHTML = `<span class="label-note">${k.note}</span><span class="label-key">${k.key}</span>`;
+            container.appendChild(el);
+          });
+          return;
+        }
 
         const keys = getVisibleKeys();
         const whites = keys.filter(k => !k.isBlack);
@@ -1160,11 +1273,22 @@
         pulse *= 0.88;
         const w = canvas.width, h = canvas.height;
 
+        const mo = document.body.classList.contains('theme-morning');
         let grad = wctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, '#0c0a0e');
-        grad.addColorStop(1, '#180e14');
+        grad.addColorStop(0, mo ? '#120b07' : '#0c0a0e');
+        grad.addColorStop(1, mo ? '#3a2314' : '#180e14');
         wctx.fillStyle = grad;
         wctx.fillRect(0, 0, w, h);
+        if (mo) { // dawn glow through the locker-room + vignette
+          const g = wctx.createRadialGradient(w * 0.5, h * 1.05, 0, w * 0.5, h * 1.05, h * 0.95);
+          g.addColorStop(0, 'rgba(240, 168, 78, ' + (0.34 + pulse * 0.25) + ')');
+          g.addColorStop(0.5, 'rgba(181, 81, 58, 0.12)');
+          g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          wctx.fillStyle = g; wctx.fillRect(0, 0, w, h);
+          const v = wctx.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, h * 0.95);
+          v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.5)');
+          wctx.fillStyle = v; wctx.fillRect(0, 0, w, h);
+        }
 
         const layers = [
           { f: 0.004, s: 1.0, amp: 26, color: 'rgba(200, 16, 46, ' },
@@ -1172,6 +1296,7 @@
           { f: 0.011, s: 1.5, amp: 12, color: 'rgba(42, 79, 184, ' }
         ];
 
+        if (mo) { layers[0].color = 'rgba(181, 81, 58, '; layers[1].color = 'rgba(227, 163, 74, '; layers[2].color = 'rgba(241, 230, 204, '; }
         layers.forEach((L, i) => {
           wctx.beginPath();
           const midY = h * (0.32 + i * 0.2);
@@ -1506,6 +1631,55 @@
         ...RUNAWAY_OUTRO
       ];
 
+      // --- IN THE MORNING (J. Cole ft. Drake) — right-hand line, 8 eighth-note slots per bar ---
+      // token: note name | "." rest (holds previous note) | "-" tie (holds previous note)
+      const MBAR = {
+        A1: "A#4 B4 A#4 G#4 F#4 . B3 .", A2: "F#4 D#4 B3 . F#4 D#4 B3 .", A4: "F#4 D#4 B3 . D#4 B3 D#4 .",
+        H1: "A#4 B4 A#4 . F#4 . B3 .",
+        B1: "A#4 - A#4 - D#6 - C#6 -", B2: "D#5 C#5 A#4 B5 D#5 C#5 A#4 .", B3: "D#5 C#5 A#4 B5 A#4 B4 A#4 .",
+        V1: "A#4 B4 A#4 B4 A#4 B4 A#4 B4", V2: "A#4 . . . G#4 - F#4 -",
+        X1: ". . . . . . . .", X2: ". . . . B4 A#4 G#4 F#4", X4: ". . . . F#4 - G#4 -"
+      };
+      const M_INTRO = ['A1', 'A2', 'A1', 'A4', 'B1', 'B2', 'B1', 'B3'], M_VERSE = ['V1', 'V2', 'V1', 'V2'],
+        M_BRIDGE = ['X1', 'X2', 'X1', 'X4'], M_HOOK = ['H1', 'A2', 'H1', 'A4', 'B1', 'B2', 'B1', 'B3'];
+      function mBars(names, label) {
+        const out = []; let last = null;
+        names.forEach((nm, bi) => {
+          const tk = MBAR[nm].split(' ');
+          if (tk.every(t => t === '.')) { // empty bar = one rest step
+            if (last && !last.key) last.beats += 4; else { last = { beats: 4, lyric: bi === 0 ? label : '⏸ Rest — let it ring' }; out.push(last); }
+            return;
+          }
+          tk.forEach(t => {
+            if (t === '.' || t === '-') { if (last) last.beats += 0.5; else { last = { beats: 0.5, lyric: '' }; out.push(last); } return; }
+            if (!MORNING_NOTE_KEY[t]) throw new Error('unmapped note ' + t);
+            last = { key: MORNING_NOTE_KEY[t], beats: 0.5, lyric: '' }; out.push(last);
+          });
+        });
+        const first = out.find(x => x.key); if (first && label) first.lyric = label;
+        return out;
+      }
+      function loadMorningSong(section) {
+        const L = { i: '🌅 Intro — the morning riff', i2: '🔁 Intro again', v: 'Verse groove — A# B A# B…', b: 'Bridge — the descent', h: '🎹 Hook & Outro' };
+        const t = document.getElementById('tempo'), tl = document.getElementById('tempo-val');
+        if (section === 'intro') return mBars(M_INTRO, L.i);
+        if (section === 'verse') return mBars(M_VERSE, L.v);
+        if (section === 'bridge') return mBars(M_BRIDGE, L.b);
+        if (section === 'hook') return mBars(M_HOOK, L.h);
+        return [...mBars(M_INTRO, L.i), ...mBars(M_INTRO, L.i2), ...mBars(M_VERSE, L.v), ...mBars(M_BRIDGE, L.b),
+        ...mBars(M_VERSE, L.v), ...mBars(M_BRIDGE, L.b), ...mBars(M_HOOK, L.h), ...mBars(M_HOOK, L.h)];
+      }
+      const sectionSel = document.getElementById('section-select');
+      const RUNAWAY_OPTS = sectionSel.innerHTML;
+      const MORNING_OPTS = `<option value="full">Full Song (All 6 Sections)</option><option value="intro">Part 1: 🌅 Intro Riff (8 bars)</option><option value="verse">Part 2: Verse Groove (4 bars)</option><option value="bridge">Part 3: Bridge — The Descent (4 bars)</option><option value="hook">Part 4: 🎹 Hook &amp; Outro (8 bars)</option>`;
+      function setSongTheme(id) {
+        currentSongId = id;
+        document.body.classList.toggle('theme-morning', id === 'morning');
+        fastMax = id === 'morning' ? 0.3 : 0.6;
+        sectionSel.innerHTML = id === 'morning' ? MORNING_OPTS : RUNAWAY_OPTS;
+        document.getElementById('tempo').max = id === 'morning' ? 160 : 140;
+      }
+
       let currentSong = RUNAWAY_FULL;
       let currentMode = 'free';
       // comboRun: when inside a fast-note run, holds the full run array + position within it
@@ -1545,7 +1719,30 @@
         show("screen-piano");
       });
 
+      document.getElementById("btnMorning").addEventListener("click", () => {
+        setSongTheme('morning');
+        currentMode = 'tutorial';
+        currentView = '17';
+        document.getElementById('tutorial-controls').style.display = 'flex';
+        document.getElementById('freeplay-controls').style.display = 'none';
+        document.getElementById('coach-area').style.display = 'flex';
+        document.getElementById('octave-nav').style.display = 'none';
+        document.getElementById('piano-wrapper').classList.remove('wide-view');
+        document.getElementById('top-bar').classList.remove('wide-view');
+        document.getElementById('mode-badge').innerText = 'In The Morning Tutorial';
+        baseOctave = 4;
+        updateActiveOctaveLabel();
+        buildKeyboard();
+        document.getElementById('keyboard-legend').innerText = "Song Keys: A S D F G H J K L ; ' (low → high)";
+        sectionSel.value = 'full';
+        document.getElementById('tempo').value = 100;
+        document.getElementById('tempo-val').innerText = '100 BPM';
+        loadSelectedSection();
+        show("screen-piano");
+      });
+
       document.getElementById("btnRunaway").addEventListener("click", () => {
+        setSongTheme('runaway');
         currentMode = 'tutorial';
         currentView = '17';
         document.getElementById('tutorial-controls').style.display = 'flex';
@@ -1568,10 +1765,11 @@
 
       document.getElementById("btnBack").addEventListener("click", () => {
         stopTutorial();
+        document.body.classList.remove('theme-morning');
         show("screen-start");
       });
 
-      document.getElementById("btnEndBack").addEventListener("click", () => show("screen-start"));
+      document.getElementById("btnEndBack").addEventListener("click", () => { document.body.classList.remove('theme-morning'); show("screen-start"); });
 
       // Free Play Controls
       document.getElementById("btnOctDown").addEventListener("click", () => {
@@ -1621,8 +1819,14 @@
       function loadSelectedSection() {
         stopTutorial();
         const section = document.getElementById("section-select").value;
+        if (currentSongId === 'morning') {
+          currentSong = loadMorningSong(section);
+          tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false, comboRun: null, comboPos: 0 };
+          nextCue();
+          return;
+        }
         const tempoSlider = document.getElementById("tempo");
-        const tempoLabel  = document.getElementById("tempo-val");
+        const tempoLabel = document.getElementById("tempo-val");
 
         if (section === 'intro') {
           currentSong = RUNAWAY_INTRO;
@@ -1676,11 +1880,15 @@
       }
 
       function getHoldGuideText(beats) {
+        if (currentSongId === 'morning') {
+          const sec = (getBeatDuration(beats || 0.5) / 1000).toFixed(2);
+          return (beats || 0.5) <= 0.5 ? `⚡ Quick tap (~${sec}s)` : `⏱️ Hold ~${sec}s`;
+        }
         if (!beats || beats <= 0.45) return "⚡ Quick Tap (~0.25s)";
         if (beats <= 0.65) return "⏱️ Short Tap (~0.4s)";
-        if (beats <= 1.2)  return "⏱️ Hold ~0.65s (1 beat)";
-        if (beats <= 1.7)  return "⏱️ Hold ~1.0s (1.5 beats)";
-        if (beats <= 2.5)  return "⏱️ Hold ~1.3s (2 beats)";
+        if (beats <= 1.2) return "⏱️ Hold ~0.65s (1 beat)";
+        if (beats <= 1.7) return "⏱️ Hold ~1.0s (1.5 beats)";
+        if (beats <= 2.5) return "⏱️ Hold ~1.3s (2 beats)";
         return "⏱️ Hold ~2.0s (3 beats)";
       }
 
@@ -1697,7 +1905,7 @@
         let i = startIdx;
         while (i < currentSong.length) {
           const s = currentSong[i];
-          if (s && s.key && s.beats && s.beats <= 0.6) {
+          if (s && s.key && s.beats && s.beats <= fastMax) {
             run.push({ step: s, songIdx: i });
             i++;
           } else {
@@ -1730,6 +1938,7 @@
           }
         }
 
+        if (currentSongId === 'morning') noteName = morningNoteName(keyLabel);
         // Coach box: just the big key + note name + progress counter
         coachTarget.innerHTML = `<span>${keyLabel}</span><span style="font-size:11px;font-weight:700;opacity:0.8;margin-top:2px;">${noteName} · ${progress}</span>`;
 
@@ -1818,7 +2027,8 @@
           }
         }
 
-        const isFast = step.beats && step.beats <= 0.6;
+        if (currentSongId === 'morning') noteName = morningNoteName(step.key);
+        const isFast = step.beats && step.beats <= fastMax;
 
         const speedBadge = document.getElementById('coach-speed-badge');
         if (speedBadge) {
@@ -1852,7 +2062,7 @@
           const chip = document.getElementById(`chip-${i}`);
           const futureStep = currentSong[tutorialState.index + i];
           if (futureStep) {
-            const futureIsFast = futureStep.beats && futureStep.beats <= 0.6;
+            const futureIsFast = futureStep.beats && futureStep.beats <= fastMax;
             chip.innerText = futureStep.key || '-';
             chip.style.visibility = 'visible';
             if (futureIsFast) chip.classList.add('fast-chip');
@@ -1867,7 +2077,7 @@
       function nextCue() {
         if (tutorialState.index >= currentSong.length) {
           stopTutorial();
-          document.getElementById('hit-count').innerText = `${tutorialState.hits} / ${currentSong.length}`;
+          document.getElementById('hit-count').innerText = `${tutorialState.hits} / ${currentSong.filter(x => x.key).length}`;
           show("screen-end");
           return;
         }
@@ -1887,7 +2097,7 @@
           return;
         }
 
-        const isFast = step.beats && step.beats <= 0.6;
+        const isFast = step.beats && step.beats <= fastMax;
 
         // Check if this is the start of a fast combo run (and we're not already mid-combo)
         if (isFast && !tutorialState.comboRun) {
@@ -1966,9 +2176,9 @@
           const step = currentSong[tutorialState.index];
           if (step && step.key) {
             const pressedLetter = el.dataset.key ? el.dataset.key.toUpperCase() : '';
-            const pressedNum    = el.dataset.numKey || '';
-            const stepKey       = step.key;
-            const stepUpper     = stepKey.toUpperCase();
+            const pressedNum = el.dataset.numKey || '';
+            const stepKey = step.key;
+            const stepUpper = stepKey.toUpperCase();
 
             const letterMatch = pressedLetter && pressedLetter === stepUpper;
             const numberMatch = pressedNum && pressedNum === stepKey;
@@ -2026,6 +2236,7 @@
         if (keyEl) {
           triggerKeyElement(keyEl);
         } else {
+          if (currentSongId === 'morning' && currentMode === 'tutorial') return;
           // If not visible on current screen, calculate frequency and play anyway
           const offsetDef = ALL_KEY_OFFSETS.find(t => t.key === letter);
           if (offsetDef) {
