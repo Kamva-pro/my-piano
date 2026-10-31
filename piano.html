@@ -1969,6 +1969,11 @@
       };
 
       // Build the song array for simulation (uses same data as tutorial)
+      // Each Runaway section gets its own correct BPM — no blanket speed
+      function tagBpm(steps, bpm) {
+        return steps.map(s => ({ ...s, simBpm: bpm }));
+      }
+
       function buildSimSong(songId) {
         if (songId === 'morning') {
           return [...mBars(M_INTRO, '🌅 Intro — the morning riff'),
@@ -1980,20 +1985,27 @@
                   ...mBars(M_HOOK, '🎹 Hook & Outro'),
                   ...mBars(M_HOOK, '🎹 Hook & Outro')];
         }
-        return [...RUNAWAY_FULL];
+        // Runaway: each section at its real tempo
+        return [
+          ...tagBpm(RUNAWAY_INTRO,         44),   // slow, spacious piano intro
+          ...tagBpm(RUNAWAY_BEAT_DROP,      92),   // hard beat drop & verse
+          ...tagBpm(RUNAWAY_CHORUS,         87),   // toast chorus
+          ...tagBpm(RUNAWAY_PIANO_RETURN,   44),   // slow again — piano strips back
+          ...tagBpm(RUNAWAY_OUTRO,         130),   // fast outro drive
+        ];
       }
 
       function simGetBpm(songId) {
-        return songId === 'morning' ? 100 : 65;
+        return songId === 'morning' ? 100 : 87; // fallback only
       }
 
-      function simBeatDurationMs(beats, songId) {
-        const bpm = simGetBpm(songId);
+      function simBeatDurationMs(beats, songId, step) {
+        const bpm = (step && step.simBpm) ? step.simBpm : simGetBpm(songId);
         return (60 / bpm) * beats * 1000;
       }
 
       function simCalcTotalMs(song, songId) {
-        return song.reduce((acc, s) => acc + simBeatDurationMs(s.beats || 1, songId), 0);
+        return song.reduce((acc, s) => acc + simBeatDurationMs(s.beats || 1, songId, s), 0);
       }
 
       function simFormatTime(ms) {
@@ -2085,7 +2097,7 @@
         }
 
         const step = simState.song[simState.index];
-        const durationMs = simBeatDurationMs(step.beats || 1, simState.songId);
+        const durationMs = simBeatDurationMs(step.beats || 1, simState.songId, step);
 
         // Visual + audio
         simUnhighlightAll();
