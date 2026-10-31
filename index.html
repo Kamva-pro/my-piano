@@ -832,6 +832,218 @@
     .key.m-high .label-note {
       color: #5a3c22;
     }
+
+    /* ===== Simulation Mode ===== */
+    #screen-sim {
+      gap: 16px;
+      background: radial-gradient(ellipse at 60% 20%, rgba(242,182,50,0.07) 0%, transparent 70%);
+    }
+
+    .sim-song-picker {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .sim-song-btn {
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(242,182,50,0.25);
+      color: var(--ink);
+      border-radius: 14px;
+      padding: 14px 22px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 800;
+      transition: all 0.15s ease;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .sim-song-btn:hover {
+      border-color: var(--gold);
+      background: rgba(242,182,50,0.1);
+      color: var(--gold);
+    }
+
+    .sim-song-btn.selected {
+      border-color: var(--gold);
+      background: rgba(242,182,50,0.18);
+      color: var(--gold);
+      box-shadow: 0 0 18px rgba(242,182,50,0.25);
+    }
+
+    .sim-panel {
+      background: var(--panel);
+      border: 1px solid rgba(242, 182, 50, 0.3);
+      border-radius: 20px;
+      padding: 20px 26px;
+      width: min(90vw, 520px);
+      backdrop-filter: blur(14px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sim-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+
+    .sim-lyric {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gold);
+      text-shadow: 0 0 20px rgba(242,182,50,0.4);
+      min-height: 22px;
+      text-align: center;
+      max-width: 90%;
+      transition: opacity 0.2s;
+    }
+
+    .sim-note-display {
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      background: var(--gold);
+      color: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 0 30px rgba(242,182,50,0.5);
+      transition: transform 0.07s ease, box-shadow 0.07s ease;
+    }
+
+    .sim-note-display.flash {
+      transform: scale(0.85);
+      box-shadow: 0 0 50px rgba(242,182,50,0.95);
+    }
+
+    .sim-progress-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .sim-progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .sim-progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), #ffd166);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.25s linear;
+    }
+
+    .sim-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .sim-controls {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .sim-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      font-weight: 900;
+    }
+
+    #simPlayBtn {
+      background: var(--gold);
+      color: #111;
+      box-shadow: 0 0 20px rgba(242,182,50,0.4);
+    }
+
+    #simPlayBtn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 32px rgba(242,182,50,0.65);
+    }
+
+    #simPlayBtn:active {
+      transform: scale(0.94);
+    }
+
+    #simRestartBtn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #ccc;
+      font-size: 18px;
+    }
+
+    #simRestartBtn:hover {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      transform: scale(1.06);
+    }
+
+    .sim-status-badge {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      padding: 3px 12px;
+      border-radius: 20px;
+      background: rgba(242,182,50,0.15);
+      border: 1px solid rgba(242,182,50,0.35);
+      color: var(--gold);
+    }
+
+    .sim-status-badge.playing {
+      background: rgba(46,213,115,0.15);
+      border-color: rgba(46,213,115,0.4);
+      color: #2ed573;
+      animation: simPulse 1s infinite alternate;
+    }
+
+    @keyframes simPulse {
+      from { opacity: 0.8; }
+      to   { opacity: 1; filter: brightness(1.2); }
+    }
+
+    .sim-status-badge.ended {
+      background: rgba(200,16,46,0.15);
+      border-color: rgba(200,16,46,0.4);
+      color: #ff6b6b;
+    }
+
+    /* key sim-glow for simulation mode */
+    .key.sim-active {
+      background: var(--gold) !important;
+      box-shadow: 0 0 28px var(--gold), inset 0 0 10px #fff !important;
+      transform: translateY(3px) !important;
+      z-index: 3 !important;
+      transition: none !important;
+    }
   </style>
 </head>
 
@@ -855,9 +1067,64 @@
       <span>11 song-tailored keys • Intro Riff • Verse • Bridge • Hook &amp; Outro</span>
     </div>
 
+    <div class="card" id="btnSimMode" style="border-color: rgba(46,213,115,0.35); background: rgba(46,213,115,0.05);">
+      <h3 style="color: #2ed573;">&#9654; Simulation Mode</h3>
+      <span>Watch &amp; listen as the piano plays itself &mdash; Runaway or In The Morning. Play / Pause anytime.</span>
+    </div>
+
     <div class="card" id="btnFreePlay">
       <h3>Normal Piano (Full 88-Key Studio)</h3>
-      <span>88 Keys • Octave Shifting (Z/X) • Free Play</span>
+      <span>88 Keys &bull; Octave Shifting (Z/X) &bull; Free Play</span>
+    </div>
+  </div>
+
+  <!-- SIMULATION SCREEN -->
+  <div id="screen-sim" class="screen">
+    <button class="back-btn" id="simBackBtn" style="align-self:flex-start; margin-left: 16px; margin-top: 4px;">&larr; Back</button>
+
+    <h1 style="font-size:22px; margin-bottom: 0;">&#127929; Simulation Mode</h1>
+    <p class="sub" style="margin-top: 0;">Watch the piano play &mdash; then try it yourself in Tutorial mode!</p>
+
+    <!-- Song Picker -->
+    <div class="sim-song-picker" id="simSongPicker">
+      <button class="sim-song-btn selected" id="simBtnRunaway" data-song="runaway">&#127925; Runaway<br><span style="font-size:11px;font-weight:600;opacity:0.7;">Kanye West</span></button>
+      <button class="sim-song-btn" id="simBtnMorning" data-song="morning">&#127797; In The Morning<br><span style="font-size:11px;font-weight:600;opacity:0.7;">J. Cole ft. Drake</span></button>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="sim-panel">
+      <div class="sim-title" id="simSongLabel">Runaway &mdash; Kanye West</div>
+      <div class="sim-lyric" id="simLyric">Press &#9654; Play to start the simulation</div>
+
+      <div class="sim-note-display" id="simNoteDisplay">&#9834;</div>
+
+      <!-- Progress -->
+      <div class="sim-progress-wrap">
+        <div class="sim-progress-bar-bg">
+          <div class="sim-progress-bar-fill" id="simProgressFill"></div>
+        </div>
+        <div class="sim-progress-label">
+          <span id="simProgressTime">0:00</span>
+          <span id="simProgressTotal">0:00</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="sim-controls">
+        <button class="sim-btn" id="simRestartBtn" title="Restart">&#8634;</button>
+        <button class="sim-btn" id="simPlayBtn" title="Play / Pause">&#9654;</button>
+      </div>
+
+      <span class="sim-status-badge" id="simStatusBadge">Ready</span>
+    </div>
+
+    <!-- Piano (read-only visual) -->
+    <div class="piano-wrapper" id="simPianoWrapper" style="pointer-events:none; margin-bottom:8px;">
+      <div class="piano-header">
+        <span id="simKeyboardLegend">Song Keys</span>
+        <span style="color:var(--gold); font-weight:800; font-size:11px;">SIMULATION</span>
+      </div>
+      <div id="sim-keyboard-container"></div>
     </div>
   </div>
 
@@ -1684,6 +1951,269 @@
       let currentMode = 'free';
       // comboRun: when inside a fast-note run, holds the full run array + position within it
       let tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false, comboRun: null, comboPos: 0 };
+
+      // =====================================================================
+      // SIMULATION MODE ENGINE
+      // =====================================================================
+      let simState = {
+        songId: 'runaway',
+        song: null,
+        index: 0,
+        playing: false,
+        timer: null,
+        totalMs: 0,
+        elapsedMs: 0,
+        startedAt: null,
+        pausedElapsed: 0,
+        rafId: null
+      };
+
+      // Build the song array for simulation (uses same data as tutorial)
+      function buildSimSong(songId) {
+        if (songId === 'morning') {
+          return [...mBars(M_INTRO, '🌅 Intro — the morning riff'),
+                  ...mBars(M_INTRO, '🔁 Intro again'),
+                  ...mBars(M_VERSE, 'Verse groove — A# B A# B…'),
+                  ...mBars(M_BRIDGE, 'Bridge — the descent'),
+                  ...mBars(M_VERSE, 'Verse groove — A# B A# B…'),
+                  ...mBars(M_BRIDGE, 'Bridge — the descent'),
+                  ...mBars(M_HOOK, '🎹 Hook & Outro'),
+                  ...mBars(M_HOOK, '🎹 Hook & Outro')];
+        }
+        return [...RUNAWAY_FULL];
+      }
+
+      function simGetBpm(songId) {
+        return songId === 'morning' ? 100 : 87;
+      }
+
+      function simBeatDurationMs(beats, songId) {
+        const bpm = simGetBpm(songId);
+        return (60 / bpm) * beats * 1000;
+      }
+
+      function simCalcTotalMs(song, songId) {
+        return song.reduce((acc, s) => acc + simBeatDurationMs(s.beats || 1, songId), 0);
+      }
+
+      function simFormatTime(ms) {
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        return `${m}:${String(s % 60).padStart(2,'0')}`;
+      }
+
+      function simBuildKeyboard(songId) {
+        const container = document.getElementById('sim-keyboard-container');
+        container.innerHTML = '';
+        container.style.height = '155px';
+        container.style.position = 'relative';
+        container.style.display = 'flex';
+        container.style.borderRadius = '6px';
+        container.style.background = '#080608';
+        container.style.overflow = 'hidden';
+
+        if (songId === 'morning') {
+          KEYS_MORNING.forEach(k => {
+            const el = document.createElement('div');
+            const reg = k.midi <= 68 ? 'm-low' : k.midi <= 75 ? 'm-mid' : 'm-high';
+            el.className = 'key white m-key ' + reg;
+            el.dataset.midi = k.midi;
+            el.dataset.key = k.key;
+            el.style.flex = '1';
+            el.innerHTML = `<span class="label-note">${k.note}</span><span class="label-key">${k.key}</span>`;
+            container.appendChild(el);
+          });
+          return;
+        }
+
+        // Runaway: show the 17-key layout
+        const keys = KEYS_CONFIG_17;
+        const whites = keys.filter(k => !k.isBlack);
+        const wCount = whites.length;
+        whites.forEach((k, idx) => {
+          const el = document.createElement('div');
+          el.className = 'key white';
+          el.dataset.midi = k.midi;
+          el.dataset.key = k.key || '';
+          el.style.flex = '1';
+          el.innerHTML = `<span class="label-note">${k.note}</span>${k.key ? `<span class="label-key">${k.key}</span>` : ''}`;
+          container.appendChild(el);
+        });
+        const blacks = keys.filter(k => k.isBlack);
+        blacks.forEach(k => {
+          const el = document.createElement('div');
+          el.className = 'key black';
+          el.dataset.midi = k.midi;
+          el.dataset.key = k.key || '';
+          const prevWhiteIdx = whites.findIndex(w => w.midi === k.midi - 1);
+          const bw = (100 / wCount) * 0.62;
+          el.style.width = bw + '%';
+          el.style.left = `calc(${(prevWhiteIdx + 1) * (100 / wCount)}% - ${bw / 2}%)`;
+          el.innerHTML = `<span class="label-note">${k.note}</span>${k.key ? `<span class="label-key">${k.key}</span>` : ''}`;
+          container.appendChild(el);
+        });
+      }
+
+      function simGetKeyEl(keyChar, songId) {
+        if (!keyChar) return null;
+        const target = keyChar.toUpperCase();
+        return Array.from(document.querySelectorAll('#sim-keyboard-container .key')).find(el => {
+          const lk = el.dataset.key ? el.dataset.key.toUpperCase() : null;
+          return lk === target;
+        });
+      }
+
+      function simUnhighlightAll() {
+        document.querySelectorAll('#sim-keyboard-container .key.sim-active').forEach(el =>
+          el.classList.remove('sim-active'));
+      }
+
+      function simPlayStep() {
+        if (!simState.playing) return;
+        if (simState.index >= simState.song.length) {
+          // Song ended
+          simUnhighlightAll();
+          simState.playing = false;
+          document.getElementById('simPlayBtn').textContent = '▶';
+          const badge = document.getElementById('simStatusBadge');
+          badge.textContent = 'Finished ✓';
+          badge.className = 'sim-status-badge ended';
+          document.getElementById('simLyric').textContent = '🎵 Song complete — try it yourself in Tutorial mode!';
+          document.getElementById('simNoteDisplay').textContent = '✓';
+          document.getElementById('simProgressFill').style.width = '100%';
+          return;
+        }
+
+        const step = simState.song[simState.index];
+        const durationMs = simBeatDurationMs(step.beats || 1, simState.songId);
+
+        // Visual + audio
+        simUnhighlightAll();
+        if (step.key) {
+          const keyEl = simGetKeyEl(step.key, simState.songId);
+          if (keyEl) {
+            keyEl.classList.add('sim-active');
+            const midi = parseInt(keyEl.dataset.midi);
+            const kObj = ALL_KEYS_88.find(k => k.midi === midi);
+            if (kObj) playNoteEngine(kObj.freq, midi, Math.max(0.15, durationMs / 1000 * 0.85));
+          }
+
+          // Note display flash
+          const nd = document.getElementById('simNoteDisplay');
+          nd.textContent = step.key;
+          nd.classList.add('flash');
+          setTimeout(() => nd.classList.remove('flash'), 90);
+        }
+
+        // Lyric
+        if (step.lyric) {
+          document.getElementById('simLyric').textContent = step.lyric;
+        }
+
+        simState.index++;
+        simState.elapsedMs += durationMs;
+
+        simState.timer = setTimeout(() => simPlayStep(), durationMs);
+      }
+
+      function simUpdateProgressLoop() {
+        if (!simState.playing) return;
+        const now = performance.now();
+        const elapsed = simState.pausedElapsed + (now - simState.startedAt);
+        const capped = Math.min(elapsed, simState.totalMs);
+        const pct = simState.totalMs > 0 ? (capped / simState.totalMs) * 100 : 0;
+        document.getElementById('simProgressFill').style.width = pct + '%';
+        document.getElementById('simProgressTime').textContent = simFormatTime(capped);
+        simState.rafId = requestAnimationFrame(simUpdateProgressLoop);
+      }
+
+      function simPlay() {
+        if (simState.playing) return;
+        ensureCtx();
+        simState.playing = true;
+        simState.startedAt = performance.now();
+        document.getElementById('simPlayBtn').textContent = '⏸';
+        const badge = document.getElementById('simStatusBadge');
+        badge.textContent = 'Playing';
+        badge.className = 'sim-status-badge playing';
+        simPlayStep();
+        simUpdateProgressLoop();
+      }
+
+      function simPause() {
+        if (!simState.playing) return;
+        simState.playing = false;
+        simState.pausedElapsed += (performance.now() - simState.startedAt);
+        if (simState.timer) { clearTimeout(simState.timer); simState.timer = null; }
+        if (simState.rafId) { cancelAnimationFrame(simState.rafId); simState.rafId = null; }
+        simUnhighlightAll();
+        document.getElementById('simPlayBtn').textContent = '▶';
+        const badge = document.getElementById('simStatusBadge');
+        badge.textContent = 'Paused';
+        badge.className = 'sim-status-badge';
+      }
+
+      function simReset() {
+        simPause();
+        simState.index = 0;
+        simState.elapsedMs = 0;
+        simState.pausedElapsed = 0;
+        simState.startedAt = null;
+        simUnhighlightAll();
+        document.getElementById('simProgressFill').style.width = '0%';
+        document.getElementById('simProgressTime').textContent = '0:00';
+        document.getElementById('simLyric').textContent = 'Press ▶ Play to start the simulation';
+        document.getElementById('simNoteDisplay').textContent = '♪';
+        const badge = document.getElementById('simStatusBadge');
+        badge.textContent = 'Ready';
+        badge.className = 'sim-status-badge';
+      }
+
+      function simLoadSong(songId) {
+        simReset();
+        simState.songId = songId;
+        simState.song = buildSimSong(songId);
+        simState.totalMs = simCalcTotalMs(simState.song, songId);
+        document.getElementById('simProgressTotal').textContent = simFormatTime(simState.totalMs);
+        const isMorning = songId === 'morning';
+        document.getElementById('simSongLabel').textContent =
+          isMorning ? 'In The Morning — J. Cole ft. Drake' : 'Runaway — Kanye West';
+        document.getElementById('simKeyboardLegend').textContent =
+          isMorning ? 'Song Keys: A S D F G H J K L ; (low → high)' : 'Song Keys: Home Row (Octave 4)';
+        // Update body theme for keyboard visuals
+        document.body.classList.toggle('theme-morning', isMorning);
+        simBuildKeyboard(songId);
+        // Update picker buttons
+        document.querySelectorAll('.sim-song-btn').forEach(b => {
+          b.classList.toggle('selected', b.dataset.song === songId);
+        });
+      }
+
+      // --- Simulation Mode Button Wiring ---
+      document.getElementById('btnSimMode').addEventListener('click', () => {
+        simLoadSong(simState.songId);
+        show('screen-sim');
+      });
+
+      document.getElementById('simBackBtn').addEventListener('click', () => {
+        simReset();
+        document.body.classList.remove('theme-morning');
+        show('screen-start');
+      });
+
+      document.getElementById('simPlayBtn').addEventListener('click', () => {
+        if (simState.playing) simPause(); else simPlay();
+      });
+
+      document.getElementById('simRestartBtn').addEventListener('click', () => {
+        simReset();
+      });
+
+      document.getElementById('simSongPicker').addEventListener('click', e => {
+        const btn = e.target.closest('.sim-song-btn');
+        if (!btn) return;
+        simLoadSong(btn.dataset.song);
+      });
 
       function show(id) {
         document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
