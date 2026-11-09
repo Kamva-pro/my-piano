@@ -947,7 +947,10 @@
       background: linear-gradient(90deg, var(--gold), #ffd166);
       border-radius: 4px;
       width: 0%;
-      transition: width 0.25s linear;
+    }
+
+    .sim-progress-bar-bg {
+      cursor: pointer;
     }
 
     .sim-progress-label {
@@ -1044,6 +1047,140 @@
       z-index: 3 !important;
       transition: none !important;
     }
+
+    /* ===== Song Library (start screen) ===== */
+    #screen-start {
+      justify-content: flex-start;
+      overflow-y: auto;
+      padding-top: max(5vh, 20px);
+      gap: 16px;
+    }
+
+    .lib-box {
+      width: min(92vw, 520px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .lib-search {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(242, 182, 50, 0.35);
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 15px;
+      outline: none;
+    }
+
+    .lib-search:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 18px rgba(242, 182, 50, 0.2);
+    }
+
+    .lib-results {
+      max-height: 44vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 2px;
+    }
+
+    .lib-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    .lib-row .lib-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .lib-row .lib-title {
+      font-weight: 800;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lib-row .lib-meta {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lib-btn {
+      border: 1px solid rgba(242, 182, 50, 0.4);
+      background: rgba(242, 182, 50, 0.1);
+      color: var(--gold);
+      border-radius: 9px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .lib-btn:hover {
+      background: rgba(242, 182, 50, 0.22);
+    }
+
+    .lib-btn.watch {
+      border-color: rgba(46, 213, 115, 0.45);
+      background: rgba(46, 213, 115, 0.1);
+      color: #2ed573;
+    }
+
+    .lib-empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 8px;
+    }
+
+    .lib-import {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .lib-link {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px dashed rgba(255, 255, 255, 0.25);
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .lib-link:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .lib-msg {
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 16px;
+    }
+
+    /* Keys a library song never uses */
+    .key.unused {
+      filter: brightness(0.55);
+    }
   </style>
 </head>
 
@@ -1055,21 +1192,16 @@
   <!-- 1. START SCREEN -->
   <div id="screen-start" class="screen active">
     <h1>Piano Studio</h1>
-    <p class="sub">Choose a mode below to start playing.</p>
+    <p class="sub">Search a song, then <b>Learn</b> it key by key or <b>Watch</b> the piano play it. Can't find it? Import any MIDI file.</p>
 
-    <div class="card" id="btnRunaway">
-      <h3>Runaway — Kanye West (Tutorial)</h3>
-      <span>Full Song: Intro • Beat Drop & Verse • Chorus • Piano Returns • Fast Outro</span>
-    </div>
-
-    <div class="card" id="btnMorning">
-      <h3>In The Morning — J. Cole ft. Drake (Tutorial)</h3>
-      <span>11 song-tailored keys • Intro Riff • Verse • Bridge • Hook &amp; Outro</span>
-    </div>
-
-    <div class="card" id="btnSimMode" style="border-color: rgba(46,213,115,0.35); background: rgba(46,213,115,0.05);">
-      <h3 style="color: #2ed573;">&#9654; Simulation Mode</h3>
-      <span>Watch &amp; listen as the piano plays itself &mdash; Runaway or In The Morning. Play / Pause anytime.</span>
+    <div class="lib-box">
+      <input id="songSearch" class="lib-search" type="search" placeholder="Search songs or artists…" autocomplete="off">
+      <div id="songResults" class="lib-results"></div>
+      <div class="lib-import">
+        <a id="midiFindLink" class="lib-link" target="_blank" rel="noopener">&#128269; Find a MIDI online</a>
+        <label class="lib-link">&#128194; Import MIDI file<input type="file" id="midiFile" accept=".mid,.midi,audio/midi" hidden></label>
+      </div>
+      <div id="importMsg" class="lib-msg"></div>
     </div>
 
     <div class="card" id="btnFreePlay">
@@ -1086,9 +1218,14 @@
     <p class="sub" style="margin-top: 0;">Watch the piano play &mdash; then try it yourself in Tutorial mode!</p>
 
     <!-- Song Picker -->
-    <div class="sim-song-picker" id="simSongPicker">
-      <button class="sim-song-btn selected" id="simBtnRunaway" data-song="runaway">&#127925; Runaway<br><span style="font-size:11px;font-weight:600;opacity:0.7;">Kanye West</span></button>
-      <button class="sim-song-btn" id="simBtnMorning" data-song="morning">&#127797; In The Morning<br><span style="font-size:11px;font-weight:600;opacity:0.7;">J. Cole ft. Drake</span></button>
+    <div class="sim-song-picker">
+      <select id="simSongSelect" class="styled-select" title="Song"></select>
+      <select id="simSpeed" class="styled-select" title="Playback speed">
+        <option value="0.5">0.5&times;</option>
+        <option value="0.75">0.75&times;</option>
+        <option value="1" selected>1&times;</option>
+        <option value="1.25">1.25&times;</option>
+      </select>
     </div>
 
     <!-- Control Panel -->
@@ -1100,7 +1237,7 @@
 
       <!-- Progress -->
       <div class="sim-progress-wrap">
-        <div class="sim-progress-bar-bg">
+        <div class="sim-progress-bar-bg" id="simProgressBar" title="Click to seek">
           <div class="sim-progress-bar-fill" id="simProgressFill"></div>
         </div>
         <div class="sim-progress-label">
@@ -1393,6 +1530,11 @@
         const container = document.getElementById('keyboard-container');
         container.innerHTML = '';
 
+        if (currentMode === 'tutorial' && LIB_SONGS[currentSongId]) {
+          renderSongKeyboard(container, LIB_SONGS[currentSongId]);
+          return;
+        }
+
         if (currentMode === 'tutorial' && currentSongId === 'morning') {
           container.classList.remove('scrollable');
           KEYS_MORNING.forEach(k => {
@@ -1504,7 +1646,7 @@
         const step = currentSong && currentSong[tutorialState.index];
         const isNumberStep = step && step.key && /^[1-9]$/.test(step.key);
 
-        document.querySelectorAll('.key').forEach(el => {
+        document.querySelectorAll('#keyboard-container .key').forEach(el => {
           const badge = el.querySelector('.label-key');
           if (!badge) return;
           if (isNumberStep && el.dataset.numKey) {
@@ -1942,9 +2084,373 @@
       function setSongTheme(id) {
         currentSongId = id;
         document.body.classList.toggle('theme-morning', id === 'morning');
-        fastMax = id === 'morning' ? 0.3 : 0.6;
+        const lib = LIB_SONGS[id];
+        fastMax = (id === 'morning' || lib) ? 0.3 : 0.6;
+        if (lib) {
+          sectionSel.innerHTML = `<option value="full">Full Song (All ${lib.sections.length} Sections)</option>` +
+            lib.sections.map((s, i) => `<option value="${i}">Part ${i + 1}: ${escapeHtml(s.name)}</option>`).join('');
+          document.getElementById('tempo').max = Math.max(200, Math.round(lib.bpm * 1.5));
+          return;
+        }
         sectionSel.innerHTML = id === 'morning' ? MORNING_OPTS : RUNAWAY_OPTS;
         document.getElementById('tempo').max = id === 'morning' ? 160 : 140;
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      // =====================================================================
+      // SONG LIBRARY — simplified piano arrangements
+      // notes: "NOTE[:beats]" tokens (sharps only, R = rest), d = default beats per token
+      // chords: "Chord[:beats]" tokens, played as an 8th-note arpeggio (default 4 beats each)
+      // =====================================================================
+      const LIBRARY_DEFS = [
+        {
+          id: 'clocks', title: 'Clocks', artist: 'Coldplay', bpm: 130, d: 0.5, tags: 'rock riff arpeggio', sections: [
+            { name: 'Intro Riff', times: 2, notes: 'D#5 A#4 G4 D#5 A#4 G4 D#5 A#4 C#5 A#4 F4 C#5 A#4 F4 C#5 A#4 C#5 A#4 F4 C#5 A#4 F4 C#5 A#4 C5 G#4 F4 C5 G#4 F4 C5 G#4' },
+            { name: 'Verse Riff', times: 2, notes: 'D#5 A#4 G4 D#5 A#4 G4 D#5 A#4 C#5 A#4 F4 C#5 A#4 F4 C#5 A#4 C#5 A#4 F4 C#5 A#4 F4 C#5 A#4 C5 G#4 F4 C5 G#4 F4 C5 G#4' }
+          ]
+        },
+        {
+          id: 'furelise', title: 'Für Elise', artist: 'Beethoven', bpm: 120, d: 0.5, tags: 'classical', sections: [
+            { name: 'Theme A', notes: 'E5 D#5 E5 D#5 E5 B4 D5 C5 A4:1.5 C4 E4 A4 B4:1.5 E4 G#4 B4 C5:1.5 E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4:1.5 C4 E4 A4 B4:1.5 E4 C5 B4 A4:1.5' },
+            { name: 'Theme B', notes: 'B4 C5 D5 E5:1.5 G4 F5 E5 D5:1.5 F4 E5 D5 C5:1.5 E4 D5 C5 B4:1.5' },
+            { name: 'Theme A (Return)', notes: 'E5 D#5 E5 D#5 E5 B4 D5 C5 A4:1.5 C4 E4 A4 B4:1.5 E4 G#4 B4 C5:1.5 E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4:1.5 C4 E4 A4 B4:1.5 E4 C5 B4 A4:3' }
+          ]
+        },
+        {
+          id: 'moonlight', title: 'Moonlight Sonata (1st Mvt.)', artist: 'Beethoven', bpm: 56, d: 1 / 3, tags: 'classical triplets', sections: [
+            { name: 'Opening Triplets', times: 2, notes: 'G#3 C#4 E4 G#3 C#4 E4 G#3 C#4 E4 G#3 C#4 E4 A3 C#4 E4 A3 C#4 E4 A3 D4 F#4 A3 D4 F#4 G#3 C4 F#4 G#3 C#4 E4 G#3 C#4 D#4 F#3 C4 D#4 E3 G#3 C#4 E3 G#3 C#4 E3 G#3 C#4 E3 G#3 C#4' }
+          ]
+        },
+        {
+          id: 'shapeofyou', title: 'Shape of You', artist: 'Ed Sheeran', bpm: 96, tags: 'pop riff marimba', sections: [
+            { name: 'Main Riff', times: 4, notes: 'C#4:.75 E4:.75 C#4:.5 C#4:.75 E4:.75 C#4:.5 C#4:.75 E4:.75 C#4:.5 D#4:.75 C#4:.75 B3:.5' }
+          ]
+        },
+        {
+          id: 'intheend', title: 'In the End', artist: 'Linkin Park', bpm: 105, d: 0.5, tags: 'rock riff', sections: [
+            { name: 'Piano Riff', times: 2, notes: 'D#5 A#5 F#5 F5 F5 F#5 F5 D#5 D#5 A#5 F#5 F5 F5 F#5 F5 C#5 C#5 A#5 F#5 F5 F5 F#5 F5 C#5 C#5 A#5 F#5 F5 F5 F#5 F5 D#5' }
+          ]
+        },
+        {
+          id: 'letitbe', title: 'Let It Be', artist: 'The Beatles', bpm: 72, tags: 'classic rock chords', sections: [
+            { name: 'Verse', chords: 'C G Am F C G F C' },
+            { name: 'Chorus', chords: 'Am G F C C G F C' }
+          ]
+        },
+        {
+          id: 'someonelikeyou', title: 'Someone Like You', artist: 'Adele', bpm: 67, tags: 'pop ballad chords', sections: [
+            { name: 'Verse', times: 2, chords: 'A C#m F#m D' },
+            { name: 'Chorus', times: 2, chords: 'A E F#m D' }
+          ]
+        },
+        {
+          id: 'someoneyouloved', title: 'Someone You Loved', artist: 'Lewis Capaldi', bpm: 110, tags: 'pop ballad chords', sections: [
+            { name: 'Verse', times: 2, chords: 'Db Ab Bbm Gb' },
+            { name: 'Chorus', times: 2, chords: 'Db Ab Bbm Gb' }
+          ]
+        },
+        {
+          id: 'allofme', title: 'All of Me', artist: 'John Legend', bpm: 63, tags: 'pop ballad chords', sections: [
+            { name: 'Verse', times: 2, chords: 'Fm Db Ab Eb' },
+            { name: 'Chorus', times: 2, chords: 'Ab Fm Db Eb' }
+          ]
+        },
+        {
+          id: 'perfect', title: 'Perfect', artist: 'Ed Sheeran', bpm: 63, tags: 'pop ballad chords', sections: [
+            { name: 'Verse', times: 2, chords: 'Ab Fm Db Eb' }
+          ]
+        },
+        {
+          id: 'hello', title: 'Hello', artist: 'Adele', bpm: 79, tags: 'pop ballad chords', sections: [
+            { name: 'Verse', times: 2, chords: 'Fm Ab Eb Db' },
+            { name: 'Chorus', times: 2, chords: 'Fm Db Ab Eb' }
+          ]
+        },
+        {
+          id: 'hallelujah', title: 'Hallelujah', artist: 'Leonard Cohen', bpm: 56, tags: 'ballad chords', sections: [
+            { name: 'Verse', chords: 'C Am C Am F G C G' },
+            { name: 'Chorus', chords: 'F Am F C G C' }
+          ]
+        },
+        {
+          id: 'imagine', title: 'Imagine', artist: 'John Lennon', bpm: 76, tags: 'classic chords', sections: [
+            { name: 'Verse', times: 4, chords: 'C:2 Cmaj7:2 F' }
+          ]
+        },
+        {
+          id: 'canon', title: 'Canon in D', artist: 'Pachelbel', bpm: 60, tags: 'classical wedding chords', sections: [
+            { name: 'Progression', times: 2, chords: 'D A Bm F#m G D G A' }
+          ]
+        },
+        {
+          id: 'heartandsoul', title: 'Heart and Soul', artist: 'Hoagy Carmichael', bpm: 110, tags: 'classic duet chords', sections: [
+            { name: 'Progression', times: 4, chords: 'C Am F G' }
+          ]
+        },
+        {
+          id: 'odetojoy', title: 'Ode to Joy', artist: 'Beethoven', bpm: 100, tags: 'classical beginner', sections: [
+            { name: 'Theme', notes: 'E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4:1.5 D4:.5 D4:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2' },
+            { name: 'Middle & Return', notes: 'D4 D4 E4 C4 D4 E4:.5 F4:.5 E4 C4 D4 E4:.5 F4:.5 E4 D4 C4 D4 G3:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2' }
+          ]
+        },
+        {
+          id: 'twinkle', title: 'Twinkle Twinkle Little Star', artist: 'Traditional', bpm: 100, tags: 'beginner kids nursery', sections: [
+            { name: 'Verse', notes: 'C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2' },
+            { name: 'Middle', notes: 'G4 G4 F4 F4 E4 E4 D4:2 G4 G4 F4 F4 E4 E4 D4:2' },
+            { name: 'Ending', notes: 'C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2' }
+          ]
+        }
+      ];
+
+      const FLAT_TO_SHARP = { Db: 'C#', Eb: 'D#', Gb: 'F#', Ab: 'G#', Bb: 'A#' };
+      const CHORD_INTERVALS = { '': [4, 7], m: [3, 7], maj7: [4, 7, 11], m7: [3, 7, 10], '7': [4, 7, 10] };
+      // Low keys first: home row, then the row above, then the row below
+      const KEY_ROW_HOME = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'"];
+      const KEY_ROW_TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']'];
+      const KEY_ROW_BOTTOM = ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'];
+      const MAX_SONG_KEYS = KEY_ROW_HOME.length + KEY_ROW_TOP.length + KEY_ROW_BOTTOM.length;
+
+      function noteToMidi(name) {
+        const m = /^([A-G])([#b]?)(-?\d)$/.exec(name);
+        if (!m) throw new Error('bad note ' + name);
+        let pc = m[1] + m[2];
+        if (FLAT_TO_SHARP[pc]) pc = FLAT_TO_SHARP[pc];
+        return NOTE_NAMES.indexOf(pc) + (parseInt(m[3]) + 1) * 12;
+      }
+
+      function parseNoteTokens(str, d, label) {
+        return str.trim().split(/\s+/).map(tok => {
+          const [n, b] = tok.split(':');
+          const beats = b ? parseFloat(b) : d;
+          return n === 'R' ? { beats } : { midi: noteToMidi(n), beats };
+        }).map((s, i) => (i === 0 ? { ...s, lyric: label } : s));
+      }
+
+      function parseChordTokens(str, label) {
+        const out = [];
+        str.trim().split(/\s+/).forEach((tok, ci) => {
+          const m = /^([A-G][#b]?)(maj7|m7|m|7)?(?::([\d.]+))?$/.exec(tok);
+          if (!m) throw new Error('bad chord ' + tok);
+          const root = noteToMidi(m[1] + '3');
+          const iv = CHORD_INTERVALS[m[2] || ''];
+          const top = iv[2] !== undefined ? root + 12 + iv[2] : root + 19;
+          const pattern = [root, root + 7, root + 12, root + 12 + iv[0], top, root + 12 + iv[0], root + 12, root + 7];
+          const count = Math.round((m[3] ? parseFloat(m[3]) : 4) * 2);
+          const chordName = m[1] + (m[2] || '');
+          for (let i = 0; i < count; i++) {
+            const lyric = i === 0 ? (ci === 0 ? `${label} — ${chordName}` : `Chord: ${chordName}`) : '';
+            out.push({ midi: pattern[i % pattern.length], beats: 0.5, lyric });
+          }
+        });
+        return out;
+      }
+
+      // Fold extreme notes by octaves until every note fits on the typing keys
+      function fitToKeyCount(sections) {
+        const all = sections.flatMap(s => s.steps).filter(s => s.midi !== undefined);
+        all.forEach(s => { while (s.midi < 21) s.midi += 12; while (s.midi > 108) s.midi -= 12; });
+        let distinct = [...new Set(all.map(s => s.midi))].sort((a, b) => a - b);
+        let flip = false;
+        while (distinct.length > MAX_SONG_KEYS) {
+          if (flip) { const hi = distinct[distinct.length - 1]; all.forEach(s => { if (s.midi === hi) s.midi -= 12; }); }
+          else { const lo = distinct[0]; all.forEach(s => { if (s.midi === lo) s.midi += 12; }); }
+          flip = !flip;
+          distinct = [...new Set(all.map(s => s.midi))].sort((a, b) => a - b);
+        }
+        return distinct;
+      }
+
+      // Turn {midi} steps into tutorial steps with a typing key per distinct note
+      function finalizeSong(meta, sections) {
+        const distinct = fitToKeyCount(sections);
+        const pool = distinct.length <= KEY_ROW_HOME.length ? KEY_ROW_HOME
+          : distinct.length <= KEY_ROW_HOME.length + KEY_ROW_TOP.length ? [...KEY_ROW_HOME, ...KEY_ROW_TOP]
+            : [...KEY_ROW_BOTTOM, ...KEY_ROW_HOME, ...KEY_ROW_TOP];
+        const midiKey = {}, keyMidi = {}, keyNote = {};
+        distinct.forEach((m, i) => {
+          midiKey[m] = pool[i]; keyMidi[pool[i]] = m;
+          keyNote[pool[i]] = ALL_KEYS_88[m - 21].note;
+        });
+        sections.forEach(s => {
+          s.steps = s.steps.map(st => (st.midi !== undefined ? { key: midiKey[st.midi], beats: st.beats, lyric: st.lyric || '' } : { beats: st.beats, lyric: st.lyric || '' }));
+        });
+        return { ...meta, sections, midiKey, keyMidi, keyNote };
+      }
+
+      function compileLibrarySong(def) {
+        const sections = def.sections.map(sec => {
+          let steps = [];
+          for (let r = 0; r < (sec.times || 1); r++) {
+            const label = sec.times > 1 ? `${sec.name} (${r + 1}/${sec.times})` : sec.name;
+            steps = steps.concat(sec.chords ? parseChordTokens(sec.chords, label) : parseNoteTokens(sec.notes, def.d || 1, label));
+          }
+          return { name: sec.name + (sec.times > 1 ? ` ×${sec.times}` : ''), steps };
+        });
+        return finalizeSong({ id: def.id, title: def.title, artist: def.artist, bpm: def.bpm, tags: def.tags || '' }, sections);
+      }
+
+      const LIB_SONGS = {};
+      LIBRARY_DEFS.forEach(def => { LIB_SONGS[def.id] = compileLibrarySong(def); });
+
+      // Catalog shown in search: the two hand-built songs + library + imported MIDIs
+      const BUILTIN_SONGS = [
+        { id: 'runaway', title: 'Runaway', artist: 'Kanye West', tags: 'hip hop rap piano intro beat drop' },
+        { id: 'morning', title: 'In The Morning', artist: 'J. Cole ft. Drake', tags: 'hip hop rap' }
+      ];
+      function songCatalog() {
+        return [...BUILTIN_SONGS, ...Object.values(LIB_SONGS)];
+      }
+      function songTitle(id) {
+        const s = songCatalog().find(x => x.id === id);
+        return s ? `${s.title} — ${s.artist}` : id;
+      }
+
+      // =====================================================================
+      // MIDI IMPORT — turns any .mid file into a playable tutorial
+      // =====================================================================
+      function parseMidi(buf) {
+        const d = new DataView(buf);
+        let p = 0;
+        const str = n => { let s = ''; for (let i = 0; i < n; i++) s += String.fromCharCode(d.getUint8(p++)); return s; };
+        const u32 = () => { const v = d.getUint32(p); p += 4; return v; };
+        const u16 = () => { const v = d.getUint16(p); p += 2; return v; };
+        const vlq = () => { let v = 0, b; do { b = d.getUint8(p++); v = (v << 7) | (b & 0x7f); } while (b & 0x80); return v; };
+
+        if (str(4) !== 'MThd') throw new Error('Not a MIDI file');
+        const hlen = u32(); u16(); const ntr = u16(); const ppq = u16();
+        p = 8 + hlen;
+        if (ppq & 0x8000) throw new Error('SMPTE-timed MIDI files are not supported');
+
+        const notes = [], tempos = [];
+        for (let t = 0; t < ntr && p + 8 <= d.byteLength; t++) {
+          const id = str(4), len = u32(), end = Math.min(p + len, d.byteLength);
+          if (id !== 'MTrk') { p = end; continue; }
+          let tick = 0, running = 0;
+          const open = {};
+          while (p < end) {
+            tick += vlq();
+            let status = d.getUint8(p);
+            if (status & 0x80) p++; else status = running;
+            if (status === 0xFF) {
+              const type = d.getUint8(p++), l = vlq();
+              if (type === 0x51 && l === 3) tempos.push({ tick, us: (d.getUint8(p) << 16) | (d.getUint8(p + 1) << 8) | d.getUint8(p + 2) });
+              p += l;
+              continue;
+            }
+            if (status === 0xF0 || status === 0xF7) { p += vlq(); continue; }
+            running = status;
+            const type = status >> 4, ch = status & 15;
+            const a = d.getUint8(p++);
+            const b = (type === 0xC || type === 0xD) ? 0 : d.getUint8(p++);
+            const k = ch * 128 + a;
+            if (type === 0x9 && b > 0) {
+              (open[k] = open[k] || []).push(tick);
+            } else if (type === 0x8 || (type === 0x9 && b === 0)) {
+              if (open[k] && open[k].length) notes.push({ midi: a, start: open[k].shift(), end: tick, ch });
+            }
+          }
+          p = end;
+        }
+        return { notes, tempos, ppq };
+      }
+
+      // Keep the top voice (the melody) and quantize it to 16th notes
+      function midiToSong(parsed, title) {
+        const { ppq } = parsed;
+        const grid = ppq / 4;
+        const notes = parsed.notes.filter(n => n.ch !== 9 && n.end > n.start);
+        if (!notes.length) throw new Error('No playable notes found in this file');
+
+        const byOnset = new Map();
+        notes.forEach(n => {
+          const q = Math.round(n.start / grid);
+          const cur = byOnset.get(q);
+          if (!cur || n.midi > cur.midi) byOnset.set(q, { midi: n.midi, endQ: Math.max(q + 1, Math.round(n.end / grid)) });
+        });
+        const onsets = [...byOnset.keys()].sort((a, b) => a - b);
+
+        const steps = [];
+        if (onsets[0] > 0) steps.push({ beats: onsets[0] / 4 });
+        onsets.forEach((q, i) => {
+          const n = byOnset.get(q);
+          const next = i + 1 < onsets.length ? onsets[i + 1] : n.endQ;
+          const soundLen = Math.min(n.endQ, next) - q;
+          steps.push({ midi: n.midi, beats: soundLen / 4 });
+          // A gap longer than an 8th note becomes its own rest
+          if (next - q - soundLen >= 2) steps.push({ beats: (next - q - soundLen) / 4 });
+          else steps[steps.length - 1].beats = (next - q) / 4;
+        });
+        // Trim leading silence and cap very long rests so playback doesn't stall
+        if (steps[0] && steps[0].midi === undefined) steps.shift();
+        steps.forEach(s => { if (s.midi === undefined) s.beats = Math.min(s.beats, 4); });
+
+        const tempo = parsed.tempos.length ? parsed.tempos.sort((a, b) => a.tick - b.tick)[0].us : 500000;
+        const bpm = Math.round(60000000 / tempo);
+
+        // Split into ~16-bar parts so they can be practised one at a time
+        const sections = [];
+        let cur = null, beatsIn = 0;
+        steps.slice(0, 2000).forEach(s => {
+          if (!cur || (beatsIn >= 64 && s.midi !== undefined)) {
+            cur = { name: `Part ${sections.length + 1}`, steps: [] };
+            sections.push(cur);
+            beatsIn = 0;
+            s = { ...s, lyric: `🎼 ${title} — Part ${sections.length}` };
+          }
+          cur.steps.push(s);
+          beatsIn += s.beats;
+        });
+
+        const id = 'midi-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        return finalizeSong({ id, title, artist: 'Imported MIDI', bpm, tags: 'midi imported' }, sections);
+      }
+
+      const IMPORT_STORE_KEY = 'pianoStudio.importedMidi';
+      function loadImportedSongs() {
+        try {
+          const list = JSON.parse(localStorage.getItem(IMPORT_STORE_KEY) || '[]');
+          list.forEach(s => { LIB_SONGS[s.id] = s; });
+        } catch (e) { }
+      }
+      function saveImportedSongs() {
+        try {
+          const list = Object.values(LIB_SONGS).filter(s => s.id.startsWith('midi-')).slice(-10);
+          localStorage.setItem(IMPORT_STORE_KEY, JSON.stringify(list));
+        } catch (e) { }
+      }
+      loadImportedSongs();
+
+      // Draws only the range the song needs; keys the song never plays are dimmed
+      function renderSongKeyboard(container, song) {
+        container.innerHTML = '';
+        container.classList.remove('scrollable');
+        const mids = Object.values(song.keyMidi);
+        let lo = Math.min(...mids), hi = Math.max(...mids);
+        if (ALL_KEYS_88[lo - 21].isBlack) lo--;
+        if (ALL_KEYS_88[hi - 21].isBlack) hi++;
+        const keys = ALL_KEYS_88.filter(k => k.midi >= lo && k.midi <= hi);
+        const whites = keys.filter(k => !k.isBlack);
+        const w = whites.length;
+        keys.forEach(k => {
+          const tk = song.midiKey[k.midi];
+          const el = document.createElement('div');
+          el.className = 'key ' + (k.isBlack ? 'black' : 'white') + (tk ? '' : ' unused');
+          el.dataset.midi = k.midi;
+          if (tk) el.dataset.key = tk;
+          if (k.isBlack) {
+            const prev = whites.findIndex(x => x.midi === k.midi - 1);
+            const bw = (100 / w) * 0.62;
+            el.style.width = bw + '%';
+            el.style.left = `calc(${(prev + 1) * (100 / w)}% - ${bw / 2}%)`;
+          } else {
+            el.style.flex = '1';
+          }
+          el.innerHTML = `<span class="label-note">${k.note}</span>${tk ? `<span class="label-key">${escapeHtml(tk)}</span>` : ''}`;
+          container.appendChild(el);
+        });
       }
 
       let currentSong = RUNAWAY_FULL;
@@ -1954,18 +2460,32 @@
 
       // =====================================================================
       // SIMULATION MODE ENGINE
+      // The AudioContext clock is the single source of truth: notes are scheduled
+      // slightly ahead on that clock, and the keyboard highlight + progress bar
+      // read the same clock every frame, so sound and visuals can't drift apart.
       // =====================================================================
+      const SIM_LOOKAHEAD = 0.15;   // seconds of audio scheduled ahead of the playhead
+      const SIM_TICK_MS = 25;       // scheduler wake-up interval
+      const SIM_PREROLL = 0.06;     // small delay so the first note isn't clipped
+
       let simState = {
         songId: 'runaway',
-        song: null,
-        index: 0,
+        song: [],
+        times: [],        // start of each step, in song-seconds (at 1x speed)
+        durs: [],         // length of each step, in song-seconds
+        midis: [],        // resolved MIDI note per step (null for rests)
+        totalSec: 0,
+        rate: 1,
         playing: false,
-        timer: null,
-        totalMs: 0,
-        elapsedMs: 0,
-        startedAt: null,
-        pausedElapsed: 0,
-        rafId: null
+        finished: false,
+        startCtx: 0,      // ctx.currentTime at which song-second 0 plays
+        pausedPos: 0,     // playhead (song-seconds) while paused
+        nextSched: 0,     // next step index to hand to the audio scheduler
+        visIdx: -1,       // step currently shown on the keyboard
+        lyricIdx: -1,
+        schedTimer: null,
+        rafId: null,
+        voices: []
       };
 
       // Build the song array for simulation (uses same data as tutorial)
@@ -1975,43 +2495,46 @@
       }
 
       function buildSimSong(songId) {
+        const lib = LIB_SONGS[songId];
+        if (lib) return tagBpm(lib.sections.flatMap(s => s.steps), lib.bpm);
         if (songId === 'morning') {
-          return [...mBars(M_INTRO, '🌅 Intro — the morning riff'),
-                  ...mBars(M_INTRO, '🔁 Intro again'),
-                  ...mBars(M_VERSE, 'Verse groove — A# B A# B…'),
-                  ...mBars(M_BRIDGE, 'Bridge — the descent'),
-                  ...mBars(M_VERSE, 'Verse groove — A# B A# B…'),
-                  ...mBars(M_BRIDGE, 'Bridge — the descent'),
-                  ...mBars(M_HOOK, '🎹 Hook & Outro'),
-                  ...mBars(M_HOOK, '🎹 Hook & Outro')];
+          return tagBpm([...mBars(M_INTRO, '🌅 Intro — the morning riff'),
+          ...mBars(M_INTRO, '🔁 Intro again'),
+          ...mBars(M_VERSE, 'Verse groove — A# B A# B…'),
+          ...mBars(M_BRIDGE, 'Bridge — the descent'),
+          ...mBars(M_VERSE, 'Verse groove — A# B A# B…'),
+          ...mBars(M_BRIDGE, 'Bridge — the descent'),
+          ...mBars(M_HOOK, '🎹 Hook & Outro'),
+          ...mBars(M_HOOK, '🎹 Hook & Outro')], 100);
         }
         // Runaway: each section at its real tempo
         return [
-          ...tagBpm(RUNAWAY_INTRO,         32),   // very slow, spacious piano intro (~1.9s/note)
-          ...tagBpm(RUNAWAY_BEAT_DROP,      92),   // hard beat drop & verse
-          ...tagBpm(RUNAWAY_CHORUS,         87),   // toast chorus
-          ...tagBpm(RUNAWAY_PIANO_RETURN,   32),   // slow again — piano strips back
-          ...tagBpm(RUNAWAY_OUTRO,         130),   // fast outro drive
+          ...tagBpm(RUNAWAY_INTRO, 32),   // very slow, spacious piano intro (~1.9s/note)
+          ...tagBpm(RUNAWAY_BEAT_DROP, 92),   // hard beat drop & verse
+          ...tagBpm(RUNAWAY_CHORUS, 87),   // toast chorus
+          ...tagBpm(RUNAWAY_PIANO_RETURN, 32),   // slow again — piano strips back
+          ...tagBpm(RUNAWAY_OUTRO, 130),   // fast outro drive
         ];
       }
 
-      function simGetBpm(songId) {
-        return songId === 'morning' ? 100 : 87; // fallback only
+      // Which MIDI note a step's key plays in a given song
+      function simStepMidi(step, songId) {
+        if (!step.key) return null;
+        const lib = LIB_SONGS[songId];
+        if (lib) return lib.keyMidi[step.key] ?? null;
+        if (songId === 'morning') {
+          const k = KEYS_MORNING.find(x => x.key === step.key.toUpperCase());
+          return k ? k.midi : null;
+        }
+        const def = /^[1-9]$/.test(step.key)
+          ? NUMBER_KEY_OFFSETS.find(n => n.key === step.key)
+          : TYPING_KEY_OFFSETS.find(t => t.key === step.key.toUpperCase());
+        return def ? 60 + def.offset : null;
       }
 
-      function simBeatDurationMs(beats, songId, step) {
-        const bpm = (step && step.simBpm) ? step.simBpm : simGetBpm(songId);
-        return (60 / bpm) * beats * 1000;
-      }
-
-      function simCalcTotalMs(song, songId) {
-        return song.reduce((acc, s) => acc + simBeatDurationMs(s.beats || 1, songId, s), 0);
-      }
-
-      function simFormatTime(ms) {
-        const s = Math.floor(ms / 1000);
-        const m = Math.floor(s / 60);
-        return `${m}:${String(s % 60).padStart(2,'0')}`;
+      function simFormatTime(sec) {
+        const s = Math.floor(sec);
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
       }
 
       function simBuildKeyboard(songId) {
@@ -2023,6 +2546,9 @@
         container.style.borderRadius = '6px';
         container.style.background = '#080608';
         container.style.overflow = 'hidden';
+
+        const lib = LIB_SONGS[songId];
+        if (lib) { renderSongKeyboard(container, lib); return; }
 
         if (songId === 'morning') {
           KEYS_MORNING.forEach(k => {
@@ -2042,21 +2568,18 @@
         const keys = KEYS_CONFIG_17;
         const whites = keys.filter(k => !k.isBlack);
         const wCount = whites.length;
-        whites.forEach((k, idx) => {
+        whites.forEach(k => {
           const el = document.createElement('div');
           el.className = 'key white';
           el.dataset.midi = k.midi;
-          el.dataset.key = k.key || '';
           el.style.flex = '1';
           el.innerHTML = `<span class="label-note">${k.note}</span>${k.key ? `<span class="label-key">${k.key}</span>` : ''}`;
           container.appendChild(el);
         });
-        const blacks = keys.filter(k => k.isBlack);
-        blacks.forEach(k => {
+        keys.filter(k => k.isBlack).forEach(k => {
           const el = document.createElement('div');
           el.className = 'key black';
           el.dataset.midi = k.midi;
-          el.dataset.key = k.key || '';
           const prevWhiteIdx = whites.findIndex(w => w.midi === k.midi - 1);
           const bw = (100 / wCount) * 0.62;
           el.style.width = bw + '%';
@@ -2066,13 +2589,8 @@
         });
       }
 
-      function simGetKeyEl(keyChar, songId) {
-        if (!keyChar) return null;
-        const target = keyChar.toUpperCase();
-        return Array.from(document.querySelectorAll('#sim-keyboard-container .key')).find(el => {
-          const lk = el.dataset.key ? el.dataset.key.toUpperCase() : null;
-          return lk === target;
-        });
+      function simKeyEl(midi) {
+        return midi == null ? null : document.querySelector(`#sim-keyboard-container .key[data-midi="${midi}"]`);
       }
 
       function simUnhighlightAll() {
@@ -2080,133 +2598,249 @@
           el.classList.remove('sim-active'));
       }
 
-      function simPlayStep() {
-        if (!simState.playing) return;
-        if (simState.index >= simState.song.length) {
-          // Song ended
+      // Song position in song-seconds, read from the audio clock
+      function simPos() {
+        if (!simState.playing) return simState.pausedPos;
+        return Math.max(0, (ctx.currentTime - simState.startCtx) * simState.rate);
+      }
+
+      // Plays one note at an exact AudioContext time
+      function simScheduleNote(midi, when, durSec) {
+        const freq = ALL_KEYS_88[midi - 21].freq;
+        const ring = Math.min(3, Math.max(0.25, durSec));
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, when);
+        const subOsc = ctx.createOscillator();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(freq * 2, when);
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = Math.min(3800, Math.max(900, freq * 4.2));
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, when);
+        gain.gain.linearRampToValueAtTime(0.34, when + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.1, when + ring);
+        gain.gain.exponentialRampToValueAtTime(0.0008, when + ring + 0.35);
+        osc.connect(filter); subOsc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        osc.start(when); subOsc.start(when);
+        osc.stop(when + ring + 0.4); subOsc.stop(when + ring + 0.4);
+        const voice = { osc, subOsc, gain };
+        simState.voices.push(voice);
+        osc.onended = () => { const i = simState.voices.indexOf(voice); if (i >= 0) simState.voices.splice(i, 1); };
+      }
+
+      function simSilenceAll() {
+        const now = ctx ? ctx.currentTime : 0;
+        simState.voices.forEach(v => {
+          try {
+            v.gain.gain.cancelScheduledValues(now);
+            v.gain.gain.setValueAtTime(v.gain.gain.value, now);
+            v.gain.gain.linearRampToValueAtTime(0, now + 0.04);
+            v.osc.stop(now + 0.05); v.subOsc.stop(now + 0.05);
+          } catch (e) { }
+        });
+        simState.voices = [];
+      }
+
+      function simScheduler() {
+        const pos = simPos();
+        const horizon = pos + SIM_LOOKAHEAD * simState.rate;
+        while (simState.nextSched < simState.song.length && simState.times[simState.nextSched] < horizon) {
+          const i = simState.nextSched++;
+          const midi = simState.midis[i];
+          // Skip notes we've fallen behind on (e.g. tab was in the background) instead of bursting them
+          if (midi == null || simState.times[i] < pos - 0.05) continue;
+          simScheduleNote(midi, simState.startCtx + simState.times[i] / simState.rate, simState.durs[i] / simState.rate);
+        }
+      }
+
+      function simStepAt(pos) {
+        // Binary search: last step whose start <= pos
+        let lo = 0, hi = simState.times.length - 1, ans = -1;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (simState.times[mid] <= pos) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+        }
+        return ans;
+      }
+
+      function simRender(pos) {
+        const idx = simStepAt(pos);
+
+        if (idx !== simState.visIdx) {
+          simState.visIdx = idx;
           simUnhighlightAll();
-          simState.playing = false;
-          document.getElementById('simPlayBtn').textContent = '▶';
-          const badge = document.getElementById('simStatusBadge');
-          badge.textContent = 'Finished ✓';
-          badge.className = 'sim-status-badge ended';
-          document.getElementById('simLyric').textContent = '🎵 Song complete — try it yourself in Tutorial mode!';
-          document.getElementById('simNoteDisplay').textContent = '✓';
-          document.getElementById('simProgressFill').style.width = '100%';
-          return;
-        }
-
-        const step = simState.song[simState.index];
-        const durationMs = simBeatDurationMs(step.beats || 1, simState.songId, step);
-
-        // Visual + audio
-        simUnhighlightAll();
-        if (step.key) {
-          const keyEl = simGetKeyEl(step.key, simState.songId);
-          if (keyEl) {
-            keyEl.classList.add('sim-active');
-            const midi = parseInt(keyEl.dataset.midi);
-            const kObj = ALL_KEYS_88.find(k => k.midi === midi);
-            if (kObj) playNoteEngine(kObj.freq, midi, Math.max(0.15, durationMs / 1000 * 0.85));
+          const step = simState.song[idx];
+          if (step && step.key) {
+            const el = simKeyEl(simState.midis[idx]);
+            if (el) el.classList.add('sim-active');
+            const nd = document.getElementById('simNoteDisplay');
+            nd.textContent = step.key;
+            nd.classList.add('flash');
+            setTimeout(() => nd.classList.remove('flash'), 90);
+            pulse = 1;
           }
-
-          // Note display flash
-          const nd = document.getElementById('simNoteDisplay');
-          nd.textContent = step.key;
-          nd.classList.add('flash');
-          setTimeout(() => nd.classList.remove('flash'), 90);
+          // Show the most recent lyric at or before this step (handles skipped frames)
+          let li = idx;
+          while (li >= 0 && !simState.song[li].lyric) li--;
+          if (li >= 0 && li !== simState.lyricIdx) {
+            simState.lyricIdx = li;
+            document.getElementById('simLyric').textContent = simState.song[li].lyric;
+          }
+        } else if (idx >= 0 && simState.song[idx].key) {
+          // Release the highlight just before the step ends so repeated notes visibly re-strike
+          const end = simState.times[idx] + simState.durs[idx];
+          if (pos > end - Math.min(0.06, simState.durs[idx] * 0.25)) simUnhighlightAll();
         }
 
-        // Lyric
-        if (step.lyric) {
-          document.getElementById('simLyric').textContent = step.lyric;
-        }
-
-        simState.index++;
-        simState.elapsedMs += durationMs;
-
-        simState.timer = setTimeout(() => simPlayStep(), durationMs);
-      }
-
-      function simUpdateProgressLoop() {
-        if (!simState.playing) return;
-        const now = performance.now();
-        const elapsed = simState.pausedElapsed + (now - simState.startedAt);
-        const capped = Math.min(elapsed, simState.totalMs);
-        const pct = simState.totalMs > 0 ? (capped / simState.totalMs) * 100 : 0;
+        const capped = Math.min(pos, simState.totalSec);
+        const pct = simState.totalSec > 0 ? (capped / simState.totalSec) * 100 : 0;
         document.getElementById('simProgressFill').style.width = pct + '%';
-        document.getElementById('simProgressTime').textContent = simFormatTime(capped);
-        simState.rafId = requestAnimationFrame(simUpdateProgressLoop);
+        document.getElementById('simProgressTime').textContent = simFormatTime(capped / simState.rate);
       }
 
-      function simPlay() {
-        if (simState.playing) return;
-        ensureCtx();
-        simState.playing = true;
-        simState.startedAt = performance.now();
-        document.getElementById('simPlayBtn').textContent = '⏸';
+      function simFrame() {
+        if (!simState.playing) return;
+        const pos = simPos();
+        simRender(pos);
+        if (pos >= simState.totalSec) { simFinish(); return; }
+        simState.rafId = requestAnimationFrame(simFrame);
+      }
+
+      function simSetBadge(text, cls) {
         const badge = document.getElementById('simStatusBadge');
-        badge.textContent = 'Playing';
-        badge.className = 'sim-status-badge playing';
-        simPlayStep();
-        simUpdateProgressLoop();
+        badge.textContent = text;
+        badge.className = 'sim-status-badge' + (cls ? ' ' + cls : '');
+      }
+
+      function simStopClocks() {
+        if (simState.schedTimer) { clearInterval(simState.schedTimer); simState.schedTimer = null; }
+        if (simState.rafId) { cancelAnimationFrame(simState.rafId); simState.rafId = null; }
+      }
+
+      function simFinish() {
+        simStopClocks();
+        simState.playing = false;
+        simState.finished = true;
+        simState.pausedPos = simState.totalSec;
+        simUnhighlightAll();
+        document.getElementById('simPlayBtn').textContent = '▶';
+        simSetBadge('Finished ✓', 'ended');
+        document.getElementById('simLyric').textContent = '🎵 Song complete — try it yourself in Tutorial mode!';
+        document.getElementById('simNoteDisplay').textContent = '✓';
+        document.getElementById('simProgressFill').style.width = '100%';
+      }
+
+      async function simPlay() {
+        if (simState.playing || !simState.song.length) return;
+        if (simState.finished) simSeek(0);
+        ensureCtx();
+        if (ctx.state !== 'running') { try { await ctx.resume(); } catch (e) { } }
+        if (simState.playing) return;
+
+        const pos = simState.pausedPos;
+        simState.startCtx = ctx.currentTime + SIM_PREROLL - pos / simState.rate;
+        simState.playing = true;
+        simState.visIdx = -2; // force a redraw on the first frame
+        simState.lyricIdx = -1;
+
+        // Re-strike the note we paused in the middle of, then schedule from the next one
+        const cur = simStepAt(pos);
+        simState.nextSched = cur + 1;
+        if (cur >= 0 && simState.midis[cur] != null) {
+          const remain = simState.times[cur] + simState.durs[cur] - pos;
+          if (remain > 0.12) simScheduleNote(simState.midis[cur], ctx.currentTime + SIM_PREROLL, remain / simState.rate);
+        }
+        if (cur < 0) simState.nextSched = 0;
+
+        document.getElementById('simPlayBtn').textContent = '⏸';
+        simSetBadge('Playing', 'playing');
+        simScheduler();
+        simState.schedTimer = setInterval(simScheduler, SIM_TICK_MS);
+        simState.rafId = requestAnimationFrame(simFrame);
       }
 
       function simPause() {
         if (!simState.playing) return;
+        simState.pausedPos = Math.min(simPos(), simState.totalSec);
         simState.playing = false;
-        simState.pausedElapsed += (performance.now() - simState.startedAt);
-        if (simState.timer) { clearTimeout(simState.timer); simState.timer = null; }
-        if (simState.rafId) { cancelAnimationFrame(simState.rafId); simState.rafId = null; }
+        simStopClocks();
+        simSilenceAll();
         simUnhighlightAll();
         document.getElementById('simPlayBtn').textContent = '▶';
-        const badge = document.getElementById('simStatusBadge');
-        badge.textContent = 'Paused';
-        badge.className = 'sim-status-badge';
+        simSetBadge('Paused');
+      }
+
+      function simSeek(pos) {
+        const wasPlaying = simState.playing;
+        if (wasPlaying) simPause();
+        simState.pausedPos = Math.max(0, Math.min(pos, simState.totalSec));
+        simState.finished = false;
+        simState.visIdx = -2;
+        simState.lyricIdx = -1;
+        simRender(simState.pausedPos);
+        simUnhighlightAll();
+        if (wasPlaying) simPlay();
       }
 
       function simReset() {
         simPause();
-        simState.index = 0;
-        simState.elapsedMs = 0;
-        simState.pausedElapsed = 0;
-        simState.startedAt = null;
+        simState.pausedPos = 0;
+        simState.finished = false;
+        simState.visIdx = -1;
+        simState.lyricIdx = -1;
         simUnhighlightAll();
         document.getElementById('simProgressFill').style.width = '0%';
         document.getElementById('simProgressTime').textContent = '0:00';
         document.getElementById('simLyric').textContent = 'Press ▶ Play to start the simulation';
         document.getElementById('simNoteDisplay').textContent = '♪';
-        const badge = document.getElementById('simStatusBadge');
-        badge.textContent = 'Ready';
-        badge.className = 'sim-status-badge';
+        simSetBadge('Ready');
+      }
+
+      function simComputeTimeline() {
+        let t = 0;
+        simState.times = []; simState.durs = []; simState.midis = [];
+        simState.song.forEach(s => {
+          const dur = (60 / (s.simBpm || 100)) * (s.beats || 1);
+          simState.times.push(t);
+          simState.durs.push(dur);
+          simState.midis.push(simStepMidi(s, simState.songId));
+          t += dur;
+        });
+        simState.totalSec = t;
+        document.getElementById('simProgressTotal').textContent = simFormatTime(t / simState.rate);
       }
 
       function simLoadSong(songId) {
         simReset();
         simState.songId = songId;
         simState.song = buildSimSong(songId);
-        simState.totalMs = simCalcTotalMs(simState.song, songId);
-        document.getElementById('simProgressTotal').textContent = simFormatTime(simState.totalMs);
-        const isMorning = songId === 'morning';
-        document.getElementById('simSongLabel').textContent =
-          isMorning ? 'In The Morning — J. Cole ft. Drake' : 'Runaway — Kanye West';
+        simComputeTimeline();
+        document.getElementById('simSongLabel').textContent = songTitle(songId);
+        const lib = LIB_SONGS[songId];
         document.getElementById('simKeyboardLegend').textContent =
-          isMorning ? 'Song Keys: A S D F G H J K L ; (low → high)' : 'Song Keys: Home Row (Octave 4)';
-        // Update body theme for keyboard visuals
-        document.body.classList.toggle('theme-morning', isMorning);
+          lib ? `Song Keys: ${Object.keys(lib.keyMidi).length} notes` :
+            songId === 'morning' ? 'Song Keys: A S D F G H J K L ; (low → high)' : 'Song Keys: Home Row (Octave 4)';
+        document.body.classList.toggle('theme-morning', songId === 'morning');
         simBuildKeyboard(songId);
-        // Update picker buttons
-        document.querySelectorAll('.sim-song-btn').forEach(b => {
-          b.classList.toggle('selected', b.dataset.song === songId);
-        });
+        simFillSongSelect();
+      }
+
+      function simFillSongSelect() {
+        const sel = document.getElementById('simSongSelect');
+        sel.innerHTML = songCatalog().map(s =>
+          `<option value="${escapeHtml(s.id)}">${escapeHtml(s.title)} — ${escapeHtml(s.artist)}</option>`).join('');
+        sel.value = simState.songId;
+      }
+
+      function openSim(songId) {
+        stopTutorial();
+        simLoadSong(songId);
+        show('screen-sim');
       }
 
       // --- Simulation Mode Button Wiring ---
-      document.getElementById('btnSimMode').addEventListener('click', () => {
-        simLoadSong(simState.songId);
-        show('screen-sim');
-      });
-
       document.getElementById('simBackBtn').addEventListener('click', () => {
         simReset();
         document.body.classList.remove('theme-morning');
@@ -2218,13 +2852,30 @@
       });
 
       document.getElementById('simRestartBtn').addEventListener('click', () => {
+        const wasPlaying = simState.playing;
         simReset();
+        if (wasPlaying) simPlay();
       });
 
-      document.getElementById('simSongPicker').addEventListener('click', e => {
-        const btn = e.target.closest('.sim-song-btn');
-        if (!btn) return;
-        simLoadSong(btn.dataset.song);
+      document.getElementById('simSongSelect').addEventListener('change', e => simLoadSong(e.target.value));
+
+      document.getElementById('simSpeed').addEventListener('change', e => {
+        const wasPlaying = simState.playing;
+        if (wasPlaying) simPause();
+        simState.rate = parseFloat(e.target.value) || 1;
+        document.getElementById('simProgressTotal').textContent = simFormatTime(simState.totalSec / simState.rate);
+        simRender(simState.pausedPos);
+        if (wasPlaying) simPlay();
+      });
+
+      document.getElementById('simProgressBar').addEventListener('click', e => {
+        const r = e.currentTarget.getBoundingClientRect();
+        simSeek(((e.clientX - r.left) / r.width) * simState.totalSec);
+      });
+
+      // Pause when the tab is hidden — background tabs throttle timers and would skip notes
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && simState.playing) simPause();
       });
 
       function show(id) {
@@ -2261,8 +2912,8 @@
         show("screen-piano");
       });
 
-      document.getElementById("btnMorning").addEventListener("click", () => {
-        setSongTheme('morning');
+      function openTutorial(id) {
+        setSongTheme(id);
         currentMode = 'tutorial';
         currentView = '17';
         document.getElementById('tutorial-controls').style.display = 'flex';
@@ -2271,38 +2922,79 @@
         document.getElementById('octave-nav').style.display = 'none';
         document.getElementById('piano-wrapper').classList.remove('wide-view');
         document.getElementById('top-bar').classList.remove('wide-view');
-        document.getElementById('mode-badge').innerText = 'In The Morning Tutorial';
+        const lib = LIB_SONGS[id];
+        document.getElementById('mode-badge').innerText =
+          (lib ? lib.title : id === 'morning' ? 'In The Morning' : 'Runaway') + ' Tutorial';
         baseOctave = 4;
         updateActiveOctaveLabel();
         buildKeyboard();
-        document.getElementById('keyboard-legend').innerText = "Song Keys: A S D F G H J K L ; ' (low → high)";
+        if (lib) {
+          document.getElementById('keyboard-legend').innerText = `Song Keys: ${Object.keys(lib.keyMidi).join(' ')} (low → high)`;
+        } else if (id === 'morning') {
+          document.getElementById('keyboard-legend').innerText = "Song Keys: A S D F G H J K L ; ' (low → high)";
+        }
+        // Always reset to Full Song + the song's tempo when entering fresh from start screen
         sectionSel.value = 'full';
-        document.getElementById('tempo').value = 100;
-        document.getElementById('tempo-val').innerText = '100 BPM';
+        const bpm = lib ? lib.bpm : id === 'morning' ? 100 : 87;
+        document.getElementById('tempo').value = bpm;
+        document.getElementById('tempo-val').innerText = bpm + ' BPM';
         loadSelectedSection();
         show("screen-piano");
+      }
+
+      // --- Song search (start screen) ---
+      const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+      function renderSongResults() {
+        const q = document.getElementById('songSearch').value.trim();
+        const words = normalize(q).split(/\s+/).filter(Boolean);
+        const matches = songCatalog().filter(s => {
+          const hay = normalize(`${s.title} ${s.artist} ${s.tags || ''}`);
+          return words.every(w => hay.includes(w));
+        });
+        const box = document.getElementById('songResults');
+        box.innerHTML = matches.map(s => `
+          <div class="lib-row">
+            <div class="lib-info">
+              <div class="lib-title">${escapeHtml(s.title)}</div>
+              <div class="lib-meta">${escapeHtml(s.artist)}${LIB_SONGS[s.id] ? ` · ${LIB_SONGS[s.id].bpm} BPM` : ''}</div>
+            </div>
+            <button class="lib-btn watch" data-watch="${escapeHtml(s.id)}">&#9654; Watch</button>
+            <button class="lib-btn" data-learn="${escapeHtml(s.id)}">&#127929; Learn</button>
+          </div>`).join('') ||
+          `<div class="lib-empty">No built-in match for “${escapeHtml(q)}”. Find a MIDI file for it online, then import it below — the app builds the keys and tutorial from the file.</div>`;
+        const link = document.getElementById('midiFindLink');
+        link.href = 'https://www.google.com/search?q=' + encodeURIComponent(`${q || 'popular song'} piano midi download`);
+        link.innerHTML = q ? `&#128269; Find “${escapeHtml(q)}” MIDI online` : '&#128269; Find a MIDI online';
+      }
+
+      document.getElementById('songSearch').addEventListener('input', renderSongResults);
+
+      document.getElementById('songResults').addEventListener('click', e => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        ensureCtx();
+        if (btn.dataset.learn) openTutorial(btn.dataset.learn);
+        else if (btn.dataset.watch) openSim(btn.dataset.watch);
       });
 
-      document.getElementById("btnRunaway").addEventListener("click", () => {
-        setSongTheme('runaway');
-        currentMode = 'tutorial';
-        currentView = '17';
-        document.getElementById('tutorial-controls').style.display = 'flex';
-        document.getElementById('freeplay-controls').style.display = 'none';
-        document.getElementById('coach-area').style.display = 'flex';
-        document.getElementById('octave-nav').style.display = 'none';
-        document.getElementById('piano-wrapper').classList.remove('wide-view');
-        document.getElementById('top-bar').classList.remove('wide-view');
-        document.getElementById('mode-badge').innerText = 'Runaway Tutorial';
-        baseOctave = 4;
-        updateActiveOctaveLabel();
-        buildKeyboard();
-        // Always reset to Full Song + 87 BPM when entering fresh from start screen
-        document.getElementById('section-select').value = 'full';
-        document.getElementById('tempo').value = 87;
-        document.getElementById('tempo-val').innerText = '87 BPM';
-        loadSelectedSection();
-        show("screen-piano");
+      document.getElementById('midiFile').addEventListener('change', async e => {
+        const file = e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        const msg = document.getElementById('importMsg');
+        try {
+          const title = file.name.replace(/\.(mid|midi)$/i, '').replace(/[_-]+/g, ' ').trim() || 'Imported Song';
+          const song = midiToSong(parseMidi(await file.arrayBuffer()), title);
+          LIB_SONGS[song.id] = song;
+          saveImportedSongs();
+          document.getElementById('songSearch').value = title;
+          renderSongResults();
+          const notes = song.sections.reduce((n, s) => n + s.steps.filter(x => x.key).length, 0);
+          msg.textContent = `✓ Imported “${title}” — ${notes} melody notes on ${Object.keys(song.keyMidi).length} keys.`;
+        } catch (err) {
+          msg.textContent = '✗ Could not import that file: ' + err.message;
+        }
       });
 
       document.getElementById("btnBack").addEventListener("click", () => {
@@ -2361,6 +3053,13 @@
       function loadSelectedSection() {
         stopTutorial();
         const section = document.getElementById("section-select").value;
+        const lib = LIB_SONGS[currentSongId];
+        if (lib) {
+          currentSong = section === 'full' ? lib.sections.flatMap(x => x.steps) : lib.sections[+section].steps;
+          tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false, comboRun: null, comboPos: 0 };
+          nextCue();
+          return;
+        }
         if (currentSongId === 'morning') {
           currentSong = loadMorningSong(section);
           tutorialState = { index: 0, hits: 0, timer: null, waitingForInput: false, comboRun: null, comboPos: 0 };
@@ -2422,7 +3121,7 @@
       }
 
       function getHoldGuideText(beats) {
-        if (currentSongId === 'morning') {
+        if (currentSongId === 'morning' || LIB_SONGS[currentSongId]) {
           const sec = (getBeatDuration(beats || 0.5) / 1000).toFixed(2);
           return (beats || 0.5) <= 0.5 ? `⚡ Quick tap (~${sec}s)` : `⏱️ Hold ~${sec}s`;
         }
@@ -2481,6 +3180,7 @@
         }
 
         if (currentSongId === 'morning') noteName = morningNoteName(keyLabel);
+        else if (LIB_SONGS[currentSongId]) noteName = LIB_SONGS[currentSongId].keyNote[keyLabel.toUpperCase()] || '';
         // Coach box: just the big key + note name + progress counter
         coachTarget.innerHTML = `<span>${keyLabel}</span><span style="font-size:11px;font-weight:700;opacity:0.8;margin-top:2px;">${noteName} · ${progress}</span>`;
 
@@ -2570,6 +3270,7 @@
         }
 
         if (currentSongId === 'morning') noteName = morningNoteName(step.key);
+        else if (LIB_SONGS[currentSongId]) noteName = LIB_SONGS[currentSongId].keyNote[(step.key || '').toUpperCase()] || '';
         const isFast = step.beats && step.beats <= fastMax;
 
         const speedBadge = document.getElementById('coach-speed-badge');
@@ -2687,7 +3388,7 @@
       function getKeyEl(keyChar) {
         if (!keyChar) return null;
         const target = keyChar.toUpperCase();
-        return Array.from(document.querySelectorAll('.key')).find(el => {
+        return Array.from(document.querySelectorAll('#keyboard-container .key')).find(el => {
           const lk = el.dataset.key ? el.dataset.key.toUpperCase() : null;
           const nk = el.dataset.numKey;
           return lk === target || nk === keyChar;
@@ -2778,7 +3479,7 @@
         if (keyEl) {
           triggerKeyElement(keyEl);
         } else {
-          if (currentSongId === 'morning' && currentMode === 'tutorial') return;
+          if ((currentSongId === 'morning' || LIB_SONGS[currentSongId]) && currentMode === 'tutorial') return;
           // If not visible on current screen, calculate frequency and play anyway
           const offsetDef = ALL_KEY_OFFSETS.find(t => t.key === letter);
           if (offsetDef) {
@@ -2856,7 +3557,7 @@
       window.addEventListener('keydown', e => {
         if (e.repeat || !document.getElementById('screen-piano').classList.contains('active')) return;
         // Prevent browser scrolling or quick search when numbers or punctuation are pressed
-        if (/^[1-9]$/.test(e.key) || e.key === ';' || e.key === "'") {
+        if (/^[1-9]$/.test(e.key) || /^[;'\/\[\],.]$/.test(e.key)) {
           e.preventDefault();
         }
         triggerKey(e.key);
@@ -2869,6 +3570,7 @@
 
       // Initial Build
       buildKeyboard();
+      renderSongResults();
     })();
   </script>
 </body>
