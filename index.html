@@ -1177,6 +1177,13 @@
       min-height: 16px;
     }
 
+    /* Other notes of a block chord (sound automatically with the target key) */
+    .key.chord-tone {
+      background: rgba(242, 182, 50, 0.45) !important;
+      box-shadow: 0 0 12px rgba(242, 182, 50, 0.5) !important;
+      filter: none;
+    }
+
     /* Keys a library song never uses */
     .key.unused {
       filter: brightness(0.55);
@@ -1380,45 +1387,83 @@
       let pulse = 0;
       const activeVoices = new Map();
 
+      // Every note goes through one master bus with a limiter, so chords and
+      // overlapping notes can never clip (clipping is what sounds like radio static)
+      let masterIn = null;
+      function getMaster() {
+        if (masterIn) return masterIn;
+        const comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -16;
+        comp.knee.value = 8;
+        comp.ratio.value = 10;
+        comp.attack.value = 0.003;
+        comp.release.value = 0.25;
+        masterIn = ctx.createGain();
+        masterIn.gain.value = 0.8;
+        masterIn.connect(comp);
+        comp.connect(ctx.destination);
+        return masterIn;
+      }
+
+      // Soft piano-like tone: a few harmonics through a filter that starts bright and mellows,
+      // the way a real string does. `choke` is a separate gain so a note can be cut cleanly
+      // without fighting its own envelope.
+      function makePianoVoice(freq, when, ring) {
+        const out = getMaster();
+        const choke = ctx.createGain();
+        choke.connect(out);
+        const amp = ctx.createGain();
+        amp.connect(choke);
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.Q.value = 0.4;
+        filter.connect(amp);
+
+        const bright = Math.min(9000, freq * 9);
+        const mellow = Math.min(4000, Math.max(500, freq * 2.2));
+        filter.frequency.setValueAtTime(bright, when);
+        filter.frequency.exponentialRampToValueAtTime(mellow, when + Math.min(0.6, ring));
+
+        // Low notes are naturally louder; tame them a little so bass + chord stays balanced
+        const peak = freq < 130 ? 0.16 : freq < 260 ? 0.2 : 0.22;
+        amp.gain.setValueAtTime(0, when);
+        amp.gain.linearRampToValueAtTime(peak, when + 0.006);
+        amp.gain.exponentialRampToValueAtTime(peak * 0.35, when + Math.min(0.5, ring));
+        amp.gain.exponentialRampToValueAtTime(0.0005, when + ring + 0.3);
+
+        const partials = [[1, 'triangle', 1], [2, 'sine', 0.28], [3, 'sine', 0.08]];
+        const oscs = partials.map(([mult, type, level]) => {
+          const o = ctx.createOscillator();
+          o.type = type;
+          o.frequency.setValueAtTime(freq * mult, when);
+          const g = ctx.createGain();
+          g.gain.value = level;
+          o.connect(g); g.connect(filter);
+          o.start(when);
+          o.stop(when + ring + 0.35);
+          return o;
+        });
+        return { oscs, choke, end: when + ring + 0.35 };
+      }
+
+      function chokeVoice(v, t, fade = 0.015) {
+        try {
+          v.choke.gain.setValueAtTime(1, t);
+          v.choke.gain.setTargetAtTime(0, t, fade);
+          v.oscs.forEach(o => o.stop(t + fade * 8));
+        } catch (e) { }
+      }
+
       function playNoteEngine(freq, midi = null, duration = 2.5) {
         pulse = 1;
         ensureCtx();
         const now = ctx.currentTime;
-
         if (midi && activeVoices.has(midi)) {
-          stopNoteEngine(midi);
+          chokeVoice(activeVoices.get(midi), now);
+          activeVoices.delete(midi);
         }
-
-        const osc = ctx.createOscillator();
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(freq, now);
-
-        const subOsc = ctx.createOscillator();
-        subOsc.type = "sine";
-        subOsc.frequency.setValueAtTime(freq * 2, now);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.38, now + 0.008);
-        const naturalDecay = Math.max(2.2, duration);
-        gain.gain.exponentialRampToValueAtTime(0.0008, now + naturalDecay);
-
-        const filter = ctx.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.value = Math.min(3800, Math.max(900, freq * 4.2));
-
-        osc.connect(filter);
-        subOsc.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(now); subOsc.start(now);
-        osc.stop(now + naturalDecay + 0.1); subOsc.stop(now + naturalDecay + 0.1);
-
-        const voice = { osc, subOsc, gain };
-        if (midi) {
-          activeVoices.set(midi, voice);
-        }
+        const voice = makePianoVoice(freq, now, Math.max(1.6, duration));
+        if (midi) activeVoices.set(midi, voice);
         return voice;
       }
 
@@ -1426,14 +1471,7 @@
         if (!midi || !activeVoices.has(midi) || !ctx) return;
         const voice = activeVoices.get(midi);
         activeVoices.delete(midi);
-        const now = ctx.currentTime;
-        try {
-          voice.gain.gain.cancelScheduledValues(now);
-          voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
-          voice.gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.4);
-          voice.osc.stop(now + 0.45);
-          voice.subOsc.stop(now + 0.45);
-        } catch (e) { }
+        chokeVoice(voice, ctx.currentTime, 0.08);
       }
 
       // --- ALL 88 KEYS DEFINITION ---
@@ -2105,7 +2143,68 @@
       // notes: "NOTE[:beats]" tokens (sharps only, R = rest), d = default beats per token
       // chords: "Chord[:beats]" tokens, played as an 8th-note arpeggio (default 4 beats each)
       // =====================================================================
+      const HB_LINES = [
+        'G4:.75 G4:.25 A4 G4 C5 B4:2',
+        'G4:.75 G4:.25 A4 G4 D5 C5:2',
+        'G4:.75 G4:.25 G5 E5 C5 B4 A4:2',
+        'F5:.75 F5:.25 E5 C5 D5 C5:3'
+      ];
       const LIBRARY_DEFS = [
+        {
+          id: 'happybirthday', title: 'Happy Birthday + Mini Emnandi Kuwe', artist: 'Traditional', bpm: 100,
+          tags: 'birthday party happy south african xhosa zulu mini emnandi kuwe beginner', sections: [
+            {
+              name: '🎂 Happy Birthday', lines: [
+                { label: '🎂 Happy Birthday — Line 1', notes: HB_LINES[0] },
+                { label: 'Line 2 — up to D5', notes: HB_LINES[1] },
+                { label: 'Line 3 — the big jump to G5!', notes: HB_LINES[2] },
+                { label: 'Line 4 — big finish', notes: HB_LINES[3] }
+              ]
+            },
+            {
+              name: '🇿🇦 Mini Emnandi Kuwe', lines: [
+                { label: '🇿🇦 Mini Emnandi Kuwe — Line 1', notes: HB_LINES[0] },
+                { label: 'Line 2', notes: HB_LINES[1] },
+                { label: 'Line 3 — jump to G5!', notes: HB_LINES[2] },
+                { label: 'Line 4 — finish strong', notes: HB_LINES[3] }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'herecomesthebride', title: 'Here Comes the Bride (Bridal Chorus)', artist: 'Wagner', bpm: 80,
+          tags: 'wedding bridal chorus march classical', sections: [
+            {
+              name: 'Opening', lines: [
+                { label: '💍 Opening — phrase 1', notes: 'G4:1 C5:1.5 C5:.5 C5:2' },
+                { label: 'Phrase 2', notes: 'G4:1 D5:1.5 B4:.5 C5:2' }
+              ]
+            },
+            {
+              name: 'Middle', lines: [
+                { label: 'Middle — rising to F5', notes: 'G4:1 C5:1.5 F5:.5 F5:1.5 E5:.5 D5:1 C5:1 B4:1 C5:1 D5:2' }
+              ]
+            },
+            {
+              name: 'Return', lines: [
+                { label: '💐 Return — phrase 1', notes: 'G4:1 C5:1.5 C5:.5 C5:2' },
+                { label: 'Phrase 2 — final', notes: 'G4:1 D5:1.5 B4:.5 C5:3' }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'stay', title: 'Stay', artist: 'Rihanna ft. Mikky Ekko', bpm: 111, tags: 'pop ballad piano block chords', sections: [
+            // The signature loop: C C C Dm | Am Am Am Am/G — the last chord steps down with G under the Am shape
+            { name: 'Intro', times: 2, blocks: 'C:3 Dm:1 Am:3 Am/G:1' },
+            { name: 'Verse', times: 4, blocks: 'C:3 Dm:1 Am:3 Am/G:1' },
+            { name: 'Pre-Chorus', blocks: 'F:3 Dm:1 Am:3 G:1 F:3 Dm:1 G:4' },
+            { name: 'Chorus', blocks: 'C:3 Dm:1 Am:3 F:1 C:3 Dm:1 Am:3 F:1 C:3 Dm:1 Am:3 Am/G:1' },
+            { name: 'Bridge', blocks: 'F:4 Am:4 F/D:6 G/E:2 F:3 Dm:1 Am:4 F:3 Dm:1 G:4' },
+            { name: 'Final Chorus', blocks: 'C:3 Dm:1 Am:3 F:1 C:3 Dm:1 Am:3 F:1 C:3 Dm:1 Am:3 Am/G:1' },
+            { name: 'Outro', blocks: 'C:3 Dm:1 Am:3 Am/G:1 C:4' }
+          ]
+        },
         {
           id: 'clocks', title: 'Clocks', artist: 'Coldplay', bpm: 130, d: 0.5, tags: 'rock riff arpeggio', sections: [
             { name: 'Intro Riff', times: 2, notes: 'D#5 A#4 G4 D#5 A#4 G4 D#5 A#4 C#5 A#4 F4 C#5 A#4 F4 C#5 A#4 C#5 A#4 F4 C#5 A#4 F4 C#5 A#4 C5 G#4 F4 C5 G#4 F4 C5 G#4' },
@@ -2206,7 +2305,7 @@
       ];
 
       const FLAT_TO_SHARP = { Db: 'C#', Eb: 'D#', Gb: 'F#', Ab: 'G#', Bb: 'A#' };
-      const CHORD_INTERVALS = { '': [4, 7], m: [3, 7], maj7: [4, 7, 11], m7: [3, 7, 10], '7': [4, 7, 10] };
+      const CHORD_INTERVALS = { '': [4, 7], m: [3, 7], maj7: [4, 7, 11], m7: [3, 7, 10], '7': [4, 7, 10], sus4: [5, 7] };
       // Low keys first: home row, then the row above, then the row below
       const KEY_ROW_HOME = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'"];
       const KEY_ROW_TOP = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']'];
@@ -2232,7 +2331,7 @@
       function parseChordTokens(str, label) {
         const out = [];
         str.trim().split(/\s+/).forEach((tok, ci) => {
-          const m = /^([A-G][#b]?)(maj7|m7|m|7)?(?::([\d.]+))?$/.exec(tok);
+          const m = /^([A-G][#b]?)(maj7|m7|sus4|m|7)?(?::([\d.]+))?$/.exec(tok);
           if (!m) throw new Error('bad chord ' + tok);
           const root = noteToMidi(m[1] + '3');
           const iv = CHORD_INTERVALS[m[2] || ''];
@@ -2243,6 +2342,34 @@
           for (let i = 0; i < count; i++) {
             const lyric = i === 0 ? (ci === 0 ? `${label} — ${chordName}` : `Chord: ${chordName}`) : '';
             out.push({ midi: pattern[i % pattern.length], beats: 0.5, lyric });
+          }
+        });
+        return out;
+      }
+
+      // Block chords: a pulsing right-hand chord voiced close together in G3–F#4 over a bass note.
+      // You press the bass key and the whole chord sounds with it.
+      // Slash chords (Am/G) also put the slash note just under the right-hand shape (G A C E).
+      function parseBlockTokens(str, label, pulse) {
+        const out = [];
+        str.trim().split(/\s+/).forEach((tok, ci) => {
+          const m = /^([A-G][#b]?)(maj7|m7|sus4|m|7)?(?:\/([A-G][#b]?))?(?::([\d.]+))?$/.exec(tok);
+          if (!m) throw new Error('bad chord ' + tok);
+          const rootPc = noteToMidi(m[1] + '4') % 12;
+          const iv = CHORD_INTERVALS[m[2] || ''];
+          const pcs = [rootPc, ...iv.map(x => (rootPc + x) % 12)];
+          const voicing = pcs.map(pc => 55 + ((pc - 7 + 12) % 12)).sort((a, b) => a - b);
+          if (m[3]) {
+            let under = voicing[0] - ((voicing[0] - noteToMidi(m[3] + '4')) % 12 + 12) % 12;
+            if (under === voicing[0]) under -= 12;
+            voicing.unshift(under);
+          }
+          const bass = 36 + (m[3] ? noteToMidi(m[3] + '4') % 12 : rootPc);
+          const beats = m[4] ? parseFloat(m[4]) : 4;
+          const chordName = m[1] + (m[2] || '') + (m[3] ? '/' + m[3] : '');
+          for (let t = 0, i = 0; t < beats - 1e-9; t += pulse, i++) {
+            const lyric = i === 0 ? (ci === 0 ? `${label} — ${chordName}` : `Chord: ${chordName}`) : '';
+            out.push({ midi: bass, extra: voicing, beats: Math.min(pulse, beats - t), lyric });
           }
         });
         return out;
@@ -2275,9 +2402,15 @@
           keyNote[pool[i]] = ALL_KEYS_88[m - 21].note;
         });
         sections.forEach(s => {
-          s.steps = s.steps.map(st => (st.midi !== undefined ? { key: midiKey[st.midi], beats: st.beats, lyric: st.lyric || '' } : { beats: st.beats, lyric: st.lyric || '' }));
+          s.steps = s.steps.map(st => {
+            if (st.midi === undefined) return { beats: st.beats, lyric: st.lyric || '' };
+            const step = { key: midiKey[st.midi], beats: st.beats, lyric: st.lyric || '' };
+            if (st.extra && st.extra.length) step.extra = st.extra;
+            return step;
+          });
         });
-        return { ...meta, sections, midiKey, keyMidi, keyNote };
+        const allMidis = [...new Set([...distinct, ...sections.flatMap(s => s.steps.flatMap(st => st.extra || []))])];
+        return { ...meta, sections, midiKey, keyMidi, keyNote, allMidis };
       }
 
       function compileLibrarySong(def) {
@@ -2285,7 +2418,12 @@
           let steps = [];
           for (let r = 0; r < (sec.times || 1); r++) {
             const label = sec.times > 1 ? `${sec.name} (${r + 1}/${sec.times})` : sec.name;
-            steps = steps.concat(sec.chords ? parseChordTokens(sec.chords, label) : parseNoteTokens(sec.notes, def.d || 1, label));
+            if (sec.lines) {
+              sec.lines.forEach(ln => { steps = steps.concat(parseNoteTokens(ln.notes, def.d || 1, ln.label)); });
+              continue;
+            }
+            steps = steps.concat(sec.blocks ? parseBlockTokens(sec.blocks, label, sec.pulse || 1)
+              : sec.chords ? parseChordTokens(sec.chords, label) : parseNoteTokens(sec.notes, def.d || 1, label));
           }
           return { name: sec.name + (sec.times > 1 ? ` ×${sec.times}` : ''), steps };
         });
@@ -2427,7 +2565,7 @@
       function renderSongKeyboard(container, song) {
         container.innerHTML = '';
         container.classList.remove('scrollable');
-        const mids = Object.values(song.keyMidi);
+        const mids = song.allMidis || Object.values(song.keyMidi);
         let lo = Math.min(...mids), hi = Math.max(...mids);
         if (ALL_KEYS_88[lo - 21].isBlack) lo--;
         if (ALL_KEYS_88[hi - 21].isBlack) hi++;
@@ -2474,6 +2612,8 @@
         times: [],        // start of each step, in song-seconds (at 1x speed)
         durs: [],         // length of each step, in song-seconds
         midis: [],        // resolved MIDI note per step (null for rests)
+        extras: [],       // extra chord tones sounding with each step
+        lastVoice: {},    // most recent voice per MIDI note (for re-strikes)
         totalSec: 0,
         rate: 1,
         playing: false,
@@ -2604,43 +2744,22 @@
         return Math.max(0, (ctx.currentTime - simState.startCtx) * simState.rate);
       }
 
-      // Plays one note at an exact AudioContext time
+      // Plays one note at an exact AudioContext time. A re-struck key cuts its previous
+      // note at that moment (like a real piano), so pulsing chords don't pile up.
       function simScheduleNote(midi, when, durSec) {
-        const freq = ALL_KEYS_88[midi - 21].freq;
-        const ring = Math.min(3, Math.max(0.25, durSec));
-        const osc = ctx.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, when);
-        const subOsc = ctx.createOscillator();
-        subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(freq * 2, when);
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = Math.min(3800, Math.max(900, freq * 4.2));
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, when);
-        gain.gain.linearRampToValueAtTime(0.34, when + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.1, when + ring);
-        gain.gain.exponentialRampToValueAtTime(0.0008, when + ring + 0.35);
-        osc.connect(filter); subOsc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
-        osc.start(when); subOsc.start(when);
-        osc.stop(when + ring + 0.4); subOsc.stop(when + ring + 0.4);
-        const voice = { osc, subOsc, gain };
+        const prev = simState.lastVoice[midi];
+        if (prev && prev.end > when) chokeVoice(prev, when);
+        const voice = makePianoVoice(ALL_KEYS_88[midi - 21].freq, when, Math.min(3, Math.max(0.3, durSec)));
+        simState.lastVoice[midi] = voice;
         simState.voices.push(voice);
-        osc.onended = () => { const i = simState.voices.indexOf(voice); if (i >= 0) simState.voices.splice(i, 1); };
+        voice.oscs[0].onended = () => { const i = simState.voices.indexOf(voice); if (i >= 0) simState.voices.splice(i, 1); };
       }
 
       function simSilenceAll() {
         const now = ctx ? ctx.currentTime : 0;
-        simState.voices.forEach(v => {
-          try {
-            v.gain.gain.cancelScheduledValues(now);
-            v.gain.gain.setValueAtTime(v.gain.gain.value, now);
-            v.gain.gain.linearRampToValueAtTime(0, now + 0.04);
-            v.osc.stop(now + 0.05); v.subOsc.stop(now + 0.05);
-          } catch (e) { }
-        });
+        simState.voices.forEach(v => chokeVoice(v, now, 0.01));
         simState.voices = [];
+        simState.lastVoice = {};
       }
 
       function simScheduler() {
@@ -2651,7 +2770,9 @@
           const midi = simState.midis[i];
           // Skip notes we've fallen behind on (e.g. tab was in the background) instead of bursting them
           if (midi == null || simState.times[i] < pos - 0.05) continue;
-          simScheduleNote(midi, simState.startCtx + simState.times[i] / simState.rate, simState.durs[i] / simState.rate);
+          const when = simState.startCtx + simState.times[i] / simState.rate, dur = simState.durs[i] / simState.rate;
+          simScheduleNote(midi, when, dur);
+          simState.extras[i].forEach(m => simScheduleNote(m, when, dur));
         }
       }
 
@@ -2673,8 +2794,10 @@
           simUnhighlightAll();
           const step = simState.song[idx];
           if (step && step.key) {
-            const el = simKeyEl(simState.midis[idx]);
-            if (el) el.classList.add('sim-active');
+            [simState.midis[idx], ...simState.extras[idx]].forEach(m => {
+              const el = simKeyEl(m);
+              if (el) el.classList.add('sim-active');
+            });
             const nd = document.getElementById('simNoteDisplay');
             nd.textContent = step.key;
             nd.classList.add('flash');
@@ -2750,7 +2873,8 @@
         simState.nextSched = cur + 1;
         if (cur >= 0 && simState.midis[cur] != null) {
           const remain = simState.times[cur] + simState.durs[cur] - pos;
-          if (remain > 0.12) simScheduleNote(simState.midis[cur], ctx.currentTime + SIM_PREROLL, remain / simState.rate);
+          if (remain > 0.12) [simState.midis[cur], ...simState.extras[cur]].forEach(m =>
+            simScheduleNote(m, ctx.currentTime + SIM_PREROLL, remain / simState.rate));
         }
         if (cur < 0) simState.nextSched = 0;
 
@@ -2800,12 +2924,13 @@
 
       function simComputeTimeline() {
         let t = 0;
-        simState.times = []; simState.durs = []; simState.midis = [];
+        simState.times = []; simState.durs = []; simState.midis = []; simState.extras = [];
         simState.song.forEach(s => {
           const dur = (60 / (s.simBpm || 100)) * (s.beats || 1);
           simState.times.push(t);
           simState.durs.push(dur);
           simState.midis.push(simStepMidi(s, simState.songId));
+          simState.extras.push(s.extra || []);
           t += dur;
         });
         simState.totalSec = t;
@@ -3134,8 +3259,8 @@
       }
 
       function unhighlightKeys() {
-        document.querySelectorAll('.key.target, .key.fast-key, .key.combo-active, .key.combo-next-1, .key.combo-next-2, .key.combo-next-3').forEach(el => {
-          el.classList.remove('target', 'fast-key', 'combo-active', 'combo-next-1', 'combo-next-2', 'combo-next-3');
+        document.querySelectorAll('.key.target, .key.fast-key, .key.combo-active, .key.combo-next-1, .key.combo-next-2, .key.combo-next-3, .key.chord-tone').forEach(el => {
+          el.classList.remove('target', 'fast-key', 'combo-active', 'combo-next-1', 'combo-next-2', 'combo-next-3', 'chord-tone');
         });
         document.querySelectorAll('.combo-order-badge').forEach(b => b.remove());
       }
@@ -3361,6 +3486,11 @@
             keyEl.classList.add('target');
             if (isFast) keyEl.classList.add('fast-key');
           }
+          // Chord tones that will sound with this key
+          (step.extra || []).forEach(m => {
+            const el = document.querySelector(`#keyboard-container .key[data-midi="${m}"]`);
+            if (el) el.classList.add('chord-tone');
+          });
         }
         // (combo highlighting is handled inside renderComboBar via updateCoachUI)
 
@@ -3427,6 +3557,7 @@
             const numberMatch = pressedNum && pressedNum === stepKey;
 
             if (letterMatch || numberMatch) {
+              (step.extra || []).forEach(m => playNoteEngine(ALL_KEYS_88[m - 21].freq, m, noteDuration));
               handleCorrectHit();
             }
           }
