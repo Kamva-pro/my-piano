@@ -2176,19 +2176,19 @@
           tags: 'wedding bridal chorus march classical', sections: [
             {
               name: 'Opening', lines: [
-                { label: '💍 Opening — phrase 1', notes: 'G4:1 C5:1.5 C5:.5 C5:2' },
-                { label: 'Phrase 2', notes: 'G4:1 D5:1.5 B4:.5 C5:2' }
+                { label: '💍 Opening — phrase 1', notes: 'G4:1 C5:.75 C5:.25 C5:2' },
+                { label: 'Phrase 2', notes: 'G4:1 D5:.75 B4:.25 C5:2' }
               ]
             },
             {
               name: 'Middle', lines: [
-                { label: 'Middle — rising to F5', notes: 'G4:1 C5:1.5 F5:.5 F5:1.5 E5:.5 D5:1 C5:1 B4:1 C5:1 D5:2' }
+                { label: 'Middle — rising to F5', notes: 'G4:1 C5:.75 F5:.25 F5:2 E5:1 D5:.75 C5:.25 B4:1 C5:.75 D5:.25 C5:2' }
               ]
             },
             {
               name: 'Return', lines: [
-                { label: '💐 Return — phrase 1', notes: 'G4:1 C5:1.5 C5:.5 C5:2' },
-                { label: 'Phrase 2 — final', notes: 'G4:1 D5:1.5 B4:.5 C5:3' }
+                { label: '💐 Return — phrase 1', notes: 'G4:1 C5:.75 C5:.25 C5:2' },
+                { label: 'Phrase 2 — final', notes: 'G4:1 D5:.75 B4:.25 C5:3' }
               ]
             }
           ]
@@ -3526,6 +3526,12 @@
       }
 
       // Trigger by element directly (for clicks, touches, glissando)
+      // Library-song tutorials play like a pedalled piano: notes ring until the next strike
+      // instead of stopping when you lift the key, and the next note is ready immediately.
+      function sustainMode() {
+        return currentMode === 'tutorial' && !!LIB_SONGS[currentSongId];
+      }
+
       function triggerKeyElement(el) {
         if (!el) return;
         const midi = parseInt(el.dataset.midi);
@@ -3557,6 +3563,11 @@
             const numberMatch = pressedNum && pressedNum === stepKey;
 
             if (letterMatch || numberMatch) {
+              if (sustainMode()) {
+                // "Pedal change": let go of whatever was ringing from the previous step
+                const keep = new Set([midi, ...(step.extra || [])]);
+                [...activeVoices.keys()].forEach(m => { if (!keep.has(m)) stopNoteEngine(m); });
+              }
               (step.extra || []).forEach(m => playNoteEngine(ALL_KEYS_88[m - 21].freq, m, noteDuration));
               handleCorrectHit();
             }
@@ -3565,6 +3576,7 @@
       }
 
       function releaseKey(letter) {
+        if (sustainMode()) return;
         const isNumberKey = /^[1-9]$/.test(letter);
         if (!isNumberKey) letter = letter.toUpperCase();
         const keyEl = getKeyEl(letter);
@@ -3652,6 +3664,12 @@
         }
 
         if (document.querySelector('input[name="playMode"]:checked').value === 'wait') {
+          if (sustainMode()) {
+            // Next note is playable straight away so you can keep your own rhythm
+            tutorialState.index++;
+            nextCue();
+            return;
+          }
           tutorialState.timer = setTimeout(() => {
             tutorialState.index++;
             nextCue();
@@ -3677,11 +3695,11 @@
 
       window.addEventListener('pointerup', () => {
         isPointerDown = false;
-        activeVoices.forEach((_, midi) => stopNoteEngine(midi));
+        if (!sustainMode()) activeVoices.forEach((_, midi) => stopNoteEngine(midi));
       });
       window.addEventListener('pointercancel', () => {
         isPointerDown = false;
-        activeVoices.forEach((_, midi) => stopNoteEngine(midi));
+        if (!sustainMode()) activeVoices.forEach((_, midi) => stopNoteEngine(midi));
       });
 
       // Physical Keyboard Listener
