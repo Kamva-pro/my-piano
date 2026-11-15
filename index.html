@@ -1543,6 +1543,10 @@
       // In The Morning: 11 tailored keys, low -> high across the home row
       const MORNING_NOTE_KEY = { 'B3': 'A', 'D#4': 'S', 'F#4': 'D', 'G#4': 'F', 'A#4': 'G', 'B4': 'H', 'C#5': 'J', 'D#5': 'K', 'B5': 'L', 'C#6': ';', 'D#6': "'" };
       const KEYS_MORNING = Object.entries(MORNING_NOTE_KEY).map(([n, k]) => ({ ...ALL_KEYS_88.find(x => x.note === n), key: k, isBlack: false }));
+      const MORNING_LAYOUT = {
+        keyMidi: Object.fromEntries(KEYS_MORNING.map(k => [k.key, k.midi])),
+        midiKey: Object.fromEntries(KEYS_MORNING.map(k => [k.midi, k.key]))
+      };
       function morningNoteName(k) { const e = KEYS_MORNING.find(x => x.key === (k || '').toUpperCase()); return e ? e.note : ''; }
       let currentSongId = 'runaway';
       let fastMax = 0.6; // beats <= fastMax count as "fast chops"
@@ -1574,15 +1578,7 @@
         }
 
         if (currentMode === 'tutorial' && currentSongId === 'morning') {
-          container.classList.remove('scrollable');
-          KEYS_MORNING.forEach(k => {
-            const el = document.createElement('div');
-            const reg = k.midi <= 68 ? 'm-low' : k.midi <= 75 ? 'm-mid' : 'm-high';
-            el.className = 'key white m-key ' + reg;
-            el.dataset.midi = k.midi; el.dataset.key = k.key; el.style.flex = '1';
-            el.innerHTML = `<span class="label-note">${k.note}</span><span class="label-key">${k.key}</span>`;
-            container.appendChild(el);
-          });
+          renderSongKeyboard(container, MORNING_LAYOUT);
           return;
         }
 
@@ -2690,19 +2686,7 @@
         const lib = LIB_SONGS[songId];
         if (lib) { renderSongKeyboard(container, lib); return; }
 
-        if (songId === 'morning') {
-          KEYS_MORNING.forEach(k => {
-            const el = document.createElement('div');
-            const reg = k.midi <= 68 ? 'm-low' : k.midi <= 75 ? 'm-mid' : 'm-high';
-            el.className = 'key white m-key ' + reg;
-            el.dataset.midi = k.midi;
-            el.dataset.key = k.key;
-            el.style.flex = '1';
-            el.innerHTML = `<span class="label-note">${k.note}</span><span class="label-key">${k.key}</span>`;
-            container.appendChild(el);
-          });
-          return;
-        }
+        if (songId === 'morning') { renderSongKeyboard(container, MORNING_LAYOUT); return; }
 
         // Runaway: show the 17-key layout
         const keys = KEYS_CONFIG_17;
