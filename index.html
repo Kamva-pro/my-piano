@@ -3443,6 +3443,7 @@
       }
 
       function nextCue() {
+        if (tutorialState.index === 0) freezeUnusedKeys();
         if (tutorialState.index >= currentSong.length) {
           stopTutorial();
           document.getElementById('hit-count').innerText = `${tutorialState.hits} / ${currentSong.filter(x => x.key).length}`;
@@ -3526,14 +3527,27 @@
       }
 
       // Trigger by element directly (for clicks, touches, glissando)
-      // Library-song tutorials play like a pedalled piano: notes ring until the next strike
+      // Tutorials play like a pedalled piano: notes ring until the next strike
       // instead of stopping when you lift the key, and the next note is ready immediately.
       function sustainMode() {
-        return currentMode === 'tutorial' && !!LIB_SONGS[currentSongId];
+        return currentMode === 'tutorial';
+      }
+
+      // Dim and lock every key the current section never plays, so only the right keys respond
+      function freezeUnusedKeys() {
+        const used = new Set();
+        currentSong.forEach(st => {
+          const m = simStepMidi(st, currentSongId);
+          if (m != null) used.add(m);
+          (st.extra || []).forEach(x => used.add(x));
+        });
+        document.querySelectorAll('#keyboard-container .key').forEach(el =>
+          el.classList.toggle('unused', !used.has(parseInt(el.dataset.midi))));
       }
 
       function triggerKeyElement(el) {
         if (!el) return;
+        if (currentMode === 'tutorial' && el.classList.contains('unused')) return;
         const midi = parseInt(el.dataset.midi);
         const kObj = ALL_KEYS_88.find(k => k.midi === midi);
         let noteDuration = 2.5;
@@ -3622,7 +3636,7 @@
         if (keyEl) {
           triggerKeyElement(keyEl);
         } else {
-          if ((currentSongId === 'morning' || LIB_SONGS[currentSongId]) && currentMode === 'tutorial') return;
+          if (currentMode === 'tutorial') return;
           // If not visible on current screen, calculate frequency and play anyway
           const offsetDef = ALL_KEY_OFFSETS.find(t => t.key === letter);
           if (offsetDef) {
