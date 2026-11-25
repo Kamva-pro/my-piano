@@ -1307,7 +1307,7 @@
             <span id="tempo-val" style="width: 48px;">87 BPM</span>
           </div>
           <div class="controls-row" id="beat-row" style="display: none;">
-            <button class="nav-btn" id="btnBeat" title="Backing drum beat">🥁 Beat: Off</button>
+            <button class="nav-btn" id="btnBeat" title="Backing drum beat — press Space to drop it in or out">🥁 Beat: Off · Space</button>
           </div>
         </div>
 
@@ -1510,7 +1510,9 @@
         src.connect(f); f.connect(g);
         src.start(when, Math.random() * 0.5); src.stop(when + 0.32);
       }
-      // A beat is one 4/4 bar of 16th-note lanes: 'X' accent, 'x' hit, 'g' ghost, 'o' open hat, '.' rest
+      // Steps in a beat pattern: 16 for one bar, 32 for a two-bar groove
+      const beatSteps = beat => Math.max(...Object.values(beat).map(p => p.length));
+      // A beat is one or more 4/4 bars of 16th-note lanes: 'X' accent, 'x' hit, 'g' ghost, 'o' open hat, '.' rest
       function beatBarEvents(beat) {
         const ev = [];
         Object.entries(beat).forEach(([lane, pat]) => {
@@ -2218,8 +2220,9 @@
       //   bar 1: Am (C E A) x8 — bass A, stepping up to B on beat 4
       //   bar 2: B E A x3, then Em (B E G) x5 over E
       //   voiced in the record's register: chords top out on A4/G4, bass in octave 2
-      //   you press all three chord notes together; the bass (left of |) plays itself
-      const DRE_LOOP = 'A2|C4+E4+A4 '.repeat(6) + 'B2|C4+E4+A4 '.repeat(2) + 'E2|B3+E4+A4 '.repeat(3) + 'E2|B3+E4+G4 '.repeat(4) + 'E2|B3+E4+G4';
+      //   you press the two notes that move (bottom + top); the bass and the E that every chord
+      //   shares (left of |) play themselves, so the full chord still sounds
+      const DRE_LOOP = 'A2+E4|C4+A4 '.repeat(6) + 'B2+E4|C4+A4 '.repeat(2) + 'E2+E4|B3+A4 '.repeat(3) + 'E2+E4|B3+G4 '.repeat(4) + 'E2+E4|B3+G4';
       const LIBRARY_DEFS = [
         {
           id: 'happybirthday', title: 'Happy Birthday + Mini Emnandi Kuwe', artist: 'Traditional', bpm: 100,
@@ -2279,14 +2282,22 @@
         {
           id: 'stilldre', title: 'Still D.R.E.', artist: 'Dr. Dre ft. Snoop Dogg', bpm: 94, d: 0.5,
           tags: 'hip hop rap west coast piano riff chords dre snoop beat drums',
-          // West-coast hip-hop groove behind the riff
-          beat: { k: 'X.....x...x..x..', s: '....X.......X...', h: 'x.g.x.g.x.g.x.go' },
-          // You press each right-hand chord (C E A → B E A → B E G); the bass note sounds with it.
+          // Original laid-back two-bar groove: heavy kick on 1 with a double push into 3,
+          // fat backbeat with a ghost snare pickup, swung hats that open up at the end of bar 2
+          beat: {
+            k: 'X.....xX..x.....' + 'X.....x...X..x..',
+            s: '....X.......X..g' + '....X..g....X...',
+            h: 'X.x.X.xxX.x.X.x.' + 'X.x.X.xxX.x.X.o.'
+          },
+          swing: 0.16,
+          // Each chord sits on two neighbouring keys and slides right: A+S → S+D → D+F
+          keys: { C4: 'A', A4: 'S', B3: 'D', G4: 'F' },
+          // You press two keys per chord (C+A → A+B → B+G); the bass and E sound with them.
           sections: [
             { name: 'Intro Riff', times: 2, drums: false, notes: DRE_LOOP },
             { name: 'Verse', times: 4, notes: DRE_LOOP },
             { name: 'Hook', times: 2, notes: DRE_LOOP },
-            { name: 'Outro', notes: DRE_LOOP + ' A2|C4+E4+A4:4' }
+            { name: 'Outro', notes: DRE_LOOP + ' A2+E4|C4+A4:4' }
           ]
         },
         {
@@ -2499,20 +2510,28 @@
           : distinct.length <= KEY_ROW_HOME.length + KEY_ROW_TOP.length ? [...KEY_ROW_HOME, ...KEY_ROW_TOP]
             : [...KEY_ROW_BOTTOM, ...KEY_ROW_HOME, ...KEY_ROW_TOP];
         const midiKey = {}, keyMidi = {}, keyNote = {};
-        distinct.forEach((m, i) => {
-          midiKey[m] = pool[i]; keyMidi[pool[i]] = m;
-          keyNote[pool[i]] = ALL_KEYS_88[m - 21].note;
+        // A song can pin letters to notes (e.g. so each chord sits on neighbouring keys)
+        const pinned = meta.keys ? Object.fromEntries(Object.entries(meta.keys).map(([n, k]) => [noteToMidi(n), k])) : {};
+        const free = pool.filter(k => !Object.values(pinned).includes(k));
+        distinct.forEach(m => {
+          const k = pinned[m] || free.shift();
+          midiKey[m] = k; keyMidi[k] = m;
+          keyNote[k] = ALL_KEYS_88[m - 21].note;
         });
         sections.forEach(s => {
           s.steps = s.steps.map(st => {
             if (st.midi === undefined) return { beats: st.beats, lyric: st.lyric || '' };
             const step = { key: midiKey[st.midi], beats: st.beats, lyric: st.lyric || '' };
             if (st.extra && st.extra.length) step.extra = st.extra;
-            if (st.chord) step.chordKeys = st.chord.map(m => midiKey[m]);
+            // Listed in typing order so the coach reads left to right across your keys
+            if (st.chord) step.chordKeys = st.chord.map(m => midiKey[m]).sort((x, y) => pool.indexOf(x) - pool.indexOf(y));
             return step;
           });
         });
-        const allMidis = [...new Set([...distinct, ...sections.flatMap(s => s.steps.flatMap(st => st.extra || []))])];
+        // Chord-press songs only draw the keys you play; the notes that play themselves can sit off-screen
+        const chordPress = sections.some(s => s.steps.some(st => st.chordKeys));
+        const allMidis = chordPress ? distinct
+          : [...new Set([...distinct, ...sections.flatMap(s => s.steps.flatMap(st => st.extra || []))])];
         return { ...meta, sections, midiKey, keyMidi, keyNote, allMidis };
       }
 
@@ -2541,8 +2560,9 @@
           sections.forEach((sec, si) => {
             const len = sec.steps.reduce((a, st) => a + (st.beats || 0), 0);
             if (def.sections[si].drums !== false) {
-              for (let b = 0; b < len - 1e-9; b += 4) bar.forEach(e => {
-                const t = b + e.step / 4;
+              const barBeats = beatSteps(def.beat) / 4;
+              for (let b = 0; b < len - 1e-9; b += barBeats) bar.forEach(e => {
+                const t = b + (e.step + (e.step % 2 ? (def.swing || 0) : 0)) / 4;
                 if (t < len - 1e-9) drumTrack.push({ beat: at + t, type: e.type, vol: e.vol });
               });
             }
@@ -2550,7 +2570,7 @@
           });
           drumTrack.sort((a, b) => a.beat - b.beat);
         }
-        return finalizeSong({ id: def.id, title: def.title, artist: def.artist, bpm: def.bpm, tags: def.tags || '', beat: def.beat || null, drumTrack }, sections);
+        return finalizeSong({ id: def.id, title: def.title, artist: def.artist, bpm: def.bpm, tags: def.tags || '', beat: def.beat || null, swing: def.swing || 0, keys: def.keys, drumTrack }, sections);
       }
 
       const LIB_SONGS = {};
@@ -3356,13 +3376,15 @@
 
       // --- Backing beat for tutorials (like a keyboard's rhythm button) ---
       // Loops the song's drum bar at the tempo slider's BPM, on the audio clock.
-      const beatLoop = { on: false, timer: null, next: 0, step: 0, bar: [] };
+      const beatLoop = { on: false, timer: null, next: 0, step: 0, bar: [], len: 16, swing: 0 };
       function beatLoopTick() {
         const bpm = parseInt(document.getElementById('tempo').value) || 90;
         while (beatLoop.next < ctx.currentTime + 0.12) {
+          // Swing: the on-16th runs long, the off-16th short
+          const sixteenth = 60 / bpm / 4 * (beatLoop.step % 2 ? 1 - beatLoop.swing : 1 + beatLoop.swing);
           beatLoop.bar.forEach(e => { if (e.step === beatLoop.step) playDrum(e.type, beatLoop.next, e.vol); });
-          beatLoop.next += 60 / bpm / 4;
-          beatLoop.step = (beatLoop.step + 1) % 16;
+          beatLoop.next += sixteenth;
+          beatLoop.step = (beatLoop.step + 1) % beatLoop.len;
         }
       }
       function setBeatLoop(on) {
@@ -3373,12 +3395,14 @@
         if (on) {
           ensureCtx();
           beatLoop.bar = beatBarEvents(lib.beat);
+          beatLoop.len = beatSteps(lib.beat);
+          beatLoop.swing = lib.swing || 0;
           beatLoop.next = ctx.currentTime + 0.06;
           beatLoop.step = 0;
           beatLoopTick();
           beatLoop.timer = setInterval(beatLoopTick, 25);
         }
-        document.getElementById('btnBeat').textContent = on ? '🥁 Beat: On' : '🥁 Beat: Off';
+        document.getElementById('btnBeat').textContent = on ? '🥁 Beat: On · Space' : '🥁 Beat: Off · Space';
         document.getElementById('btnBeat').classList.toggle('active', on);
       }
       document.getElementById('btnBeat').addEventListener('click', e => { setBeatLoop(!beatLoop.on); e.currentTarget.blur(); });
@@ -3894,6 +3918,12 @@
       // Physical Keyboard Listener
       window.addEventListener('keydown', e => {
         if (e.repeat || !document.getElementById('screen-piano').classList.contains('active')) return;
+        // Space drops the backing beat in or out while you play
+        if (e.code === 'Space' && document.getElementById('beat-row').style.display !== 'none') {
+          e.preventDefault();
+          setBeatLoop(!beatLoop.on);
+          return;
+        }
         // Prevent browser scrolling or quick search when numbers or punctuation are pressed
         if (/^[1-9]$/.test(e.key) || /^[;'\/\[\],.]$/.test(e.key)) {
           e.preventDefault();
