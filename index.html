@@ -2215,8 +2215,11 @@
         'F5:.75 F5:.25 E5 C5 D5 C5:3'
       ];
       // The 2-bar Still D.R.E. riff (steady 8th-note stabs):
-      //   bar 1: Am (C E A) x8 over A   ·   bar 2: B E A x3, then Em (B E G) x5 over E
-      const DRE_LOOP = 'A3+C5+E5+A5 '.repeat(8) + 'E3+B4+E5+A5 '.repeat(3) + 'E3+B4+E5+G5 '.repeat(4) + 'E3+B4+E5+G5';
+      //   bar 1: Am (C E A) x8 — bass A, stepping up to B on beat 4
+      //   bar 2: B E A x3, then Em (B E G) x5 over E
+      //   voiced in the record's register: chords top out on A4/G4, bass in octave 2
+      //   you press all three chord notes together; the bass (left of |) plays itself
+      const DRE_LOOP = 'A2|C4+E4+A4 '.repeat(6) + 'B2|C4+E4+A4 '.repeat(2) + 'E2|B3+E4+A4 '.repeat(3) + 'E2|B3+E4+G4 '.repeat(4) + 'E2|B3+E4+G4';
       const LIBRARY_DEFS = [
         {
           id: 'happybirthday', title: 'Happy Birthday + Mini Emnandi Kuwe', artist: 'Traditional', bpm: 100,
@@ -2278,13 +2281,12 @@
           tags: 'hip hop rap west coast piano riff chords dre snoop beat drums',
           // West-coast hip-hop groove behind the riff
           beat: { k: 'X.....x...x..x..', s: '....X.......X...', h: 'x.g.x.g.x.g.x.go' },
-          // You press the TOP note of each chord (A5, then G5 when it moves to Em);
-          // the rest of the chord and the bass note sound with it.
+          // You press each right-hand chord (C E A → B E A → B E G); the bass note sounds with it.
           sections: [
             { name: 'Intro Riff', times: 2, drums: false, notes: DRE_LOOP },
             { name: 'Verse', times: 4, notes: DRE_LOOP },
             { name: 'Hook', times: 2, notes: DRE_LOOP },
-            { name: 'Outro', notes: DRE_LOOP + ' A3+C5+E5+A5:4' }
+            { name: 'Outro', notes: DRE_LOOP + ' A2|C4+E4+A4:4' }
           ]
         },
         {
@@ -2407,6 +2409,12 @@
           const [n, b] = tok.split(':');
           const beats = b ? parseFloat(b) : d;
           if (n === 'R') return { beats };
+          // "A2|C4+E4+A4": the bass left of | sounds by itself, you press every note right of it together
+          if (n.includes('|')) {
+            const [auto, press] = n.split('|');
+            const chord = press.split('+').map(noteToMidi).sort((x, y) => x - y);
+            return { midi: chord[chord.length - 1], chord, extra: auto.split('+').map(noteToMidi), beats };
+          }
           // "A3+E4+A4+C5": you press the top note, the rest of the chord sounds with it
           const ms = n.split('+').map(noteToMidi).sort((x, y) => x - y);
           const top = ms.pop();
@@ -2464,14 +2472,22 @@
       // Fold extreme notes by octaves until every note fits on the typing keys
       function fitToKeyCount(sections) {
         const all = sections.flatMap(s => s.steps).filter(s => s.midi !== undefined);
-        all.forEach(s => { while (s.midi < 21) s.midi += 12; while (s.midi > 108) s.midi -= 12; });
-        let distinct = [...new Set(all.map(s => s.midi))].sort((a, b) => a - b);
+        const pressed = () => all.flatMap(s => s.chord || [s.midi]);
+        const shift = (m, by) => all.forEach(s => {
+          if (s.midi === m) s.midi += by;
+          if (s.chord) s.chord = s.chord.map(x => (x === m ? x + by : x));
+        });
+        all.forEach(s => {
+          while (s.midi < 21) s.midi += 12; while (s.midi > 108) s.midi -= 12;
+          if (s.chord) s.chord = s.chord.map(x => { while (x < 21) x += 12; while (x > 108) x -= 12; return x; });
+        });
+        let distinct = [...new Set(pressed())].sort((a, b) => a - b);
         let flip = false;
         while (distinct.length > MAX_SONG_KEYS) {
-          if (flip) { const hi = distinct[distinct.length - 1]; all.forEach(s => { if (s.midi === hi) s.midi -= 12; }); }
-          else { const lo = distinct[0]; all.forEach(s => { if (s.midi === lo) s.midi += 12; }); }
+          if (flip) shift(distinct[distinct.length - 1], -12);
+          else shift(distinct[0], 12);
           flip = !flip;
-          distinct = [...new Set(all.map(s => s.midi))].sort((a, b) => a - b);
+          distinct = [...new Set(pressed())].sort((a, b) => a - b);
         }
         return distinct;
       }
@@ -2492,6 +2508,7 @@
             if (st.midi === undefined) return { beats: st.beats, lyric: st.lyric || '' };
             const step = { key: midiKey[st.midi], beats: st.beats, lyric: st.lyric || '' };
             if (st.extra && st.extra.length) step.extra = st.extra;
+            if (st.chord) step.chordKeys = st.chord.map(m => midiKey[m]);
             return step;
           });
         });
@@ -3033,7 +3050,7 @@
           simState.times.push(t);
           simState.durs.push(dur);
           simState.midis.push(simStepMidi(s, simState.songId));
-          simState.extras.push(s.extra || []);
+          simState.extras.push([...(s.extra || []), ...(s.chordKeys || []).map(k => simStepMidi({ key: k }, simState.songId))]);
           t += dur;
         });
         simState.totalSec = t;
@@ -3408,7 +3425,7 @@
         let i = startIdx;
         while (i < currentSong.length) {
           const s = currentSong[i];
-          if (s && s.key && s.beats && s.beats <= fastMax) {
+          if (s && s.key && !s.chordKeys && s.beats && s.beats <= fastMax) {
             run.push({ step: s, songIdx: i });
             i++;
           } else {
@@ -3532,8 +3549,11 @@
         }
 
         if (currentSongId === 'morning') noteName = morningNoteName(step.key);
-        else if (LIB_SONGS[currentSongId]) noteName = LIB_SONGS[currentSongId].keyNote[(step.key || '').toUpperCase()] || '';
-        const isFast = step.beats && step.beats <= fastMax;
+        else if (LIB_SONGS[currentSongId]) {
+          const kn = LIB_SONGS[currentSongId].keyNote;
+          noteName = step.chordKeys ? step.chordKeys.map(k => kn[k]).join(' ') : kn[(step.key || '').toUpperCase()] || '';
+        }
+        const isFast = step.beats && step.beats <= fastMax && !step.chordKeys;
 
         const speedBadge = document.getElementById('coach-speed-badge');
         if (speedBadge) {
@@ -3546,7 +3566,7 @@
         }
 
         const coachTarget = document.getElementById('coach-target');
-        coachTarget.innerHTML = `<span>${step.key || '-'}</span>${noteName ? `<span style="font-size:12px; font-weight:700; opacity:0.8; margin-top:2px;">${noteName}</span>` : ''}`;
+        coachTarget.innerHTML = `<span${step.chordKeys ? ' style="font-size:22px;white-space:nowrap;"' : ''}>${step.chordKeys ? step.chordKeys.join(' ') : step.key || '-'}</span>${noteName ? `<span style="font-size:12px; font-weight:700; opacity:0.8; margin-top:2px;">${noteName}</span>` : ''}`;
         if (isFast) {
           coachTarget.classList.add('fast-note');
         } else {
@@ -3568,7 +3588,9 @@
           const futureStep = currentSong[tutorialState.index + i];
           if (futureStep) {
             const futureIsFast = futureStep.beats && futureStep.beats <= fastMax;
-            chip.innerText = futureStep.key || '-';
+            chip.innerText = futureStep.chordKeys ? futureStep.chordKeys.join(' ') : futureStep.key || '-';
+            chip.style.whiteSpace = futureStep.chordKeys ? 'nowrap' : '';
+            chip.style.fontSize = futureStep.chordKeys ? '11px' : '';
             chip.style.visibility = 'visible';
             if (futureIsFast) chip.classList.add('fast-chip');
             else chip.classList.remove('fast-chip');
@@ -3603,7 +3625,7 @@
           return;
         }
 
-        const isFast = step.beats && step.beats <= fastMax;
+        const isFast = step.beats && step.beats <= fastMax && !step.chordKeys;
 
         // Check if this is the start of a fast combo run (and we're not already mid-combo)
         if (isFast && !tutorialState.comboRun) {
@@ -3619,11 +3641,12 @@
         // For normal (non-combo) notes, highlight the single target key
         if (!tutorialState.comboRun) {
           unhighlightKeys();
-          const keyEl = getKeyEl(step.key);
-          if (keyEl) {
+          (step.chordKeys || [step.key]).forEach(k => {
+            const keyEl = getKeyEl(k);
+            if (!keyEl) return;
             keyEl.classList.add('target');
             if (isFast) keyEl.classList.add('fast-key');
-          }
+          });
           // Chord tones that will sound with this key
           (step.extra || []).forEach(m => {
             const el = document.querySelector(`#keyboard-container .key[data-midi="${m}"]`);
@@ -3634,6 +3657,7 @@
 
         const playMode = document.querySelector('input[name="playMode"]:checked').value;
         tutorialState.waitingForInput = true;
+        tutorialState.chordDown = new Set();
 
         if (playMode === 'timed') {
           tutorialState.timer = setTimeout(() => {
@@ -3677,6 +3701,7 @@
           const m = simStepMidi(st, currentSongId);
           if (m != null) used.add(m);
           (st.extra || []).forEach(x => used.add(x));
+          (st.chordKeys || []).forEach(k => used.add(simStepMidi({ key: k }, currentSongId)));
         });
         document.querySelectorAll('#keyboard-container .key').forEach(el =>
           el.classList.toggle('unused', !used.has(parseInt(el.dataset.midi))));
@@ -3711,6 +3736,20 @@
 
             const letterMatch = pressedLetter && pressedLetter === stepUpper;
             const numberMatch = pressedNum && pressedNum === stepKey;
+
+            // Chord step: every chord key has to go down before it counts
+            if (step.chordKeys) {
+              if (!step.chordKeys.includes(pressedLetter)) return;
+              const down = tutorialState.chordDown || (tutorialState.chordDown = new Set());
+              if (sustainMode() && !down.size) {
+                const keep = new Set([...step.chordKeys.map(k => parseInt(getKeyEl(k)?.dataset.midi)), ...(step.extra || [])]);
+                [...activeVoices.keys()].forEach(m => { if (!keep.has(m)) stopNoteEngine(m); });
+              }
+              if (!down.size) (step.extra || []).forEach(m => playNoteEngine(ALL_KEYS_88[m - 21].freq, m, noteDuration));
+              down.add(pressedLetter);
+              if (down.size === step.chordKeys.length) handleCorrectHit();
+              return;
+            }
 
             if (letterMatch || numberMatch) {
               if (sustainMode()) {
