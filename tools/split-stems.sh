@@ -68,7 +68,8 @@ fi
 echo "Splitting ${#songs[@]} song(s) — roughly 3x each song's length on this computer…"
 
 mkdir -p "$STEMS_DIR"
-"$VENV/bin/demucs" -n htdemucs --mp3 --mp3-bitrate 256 -o "$STEMS_DIR" \
+# Lowest CPU priority so music playing in the browser never stutters while this runs
+nice -n 19 "$VENV/bin/demucs" -n htdemucs --mp3 --mp3-bitrate 256 -o "$STEMS_DIR" \
   --filename "{track}/{stem}.{ext}" "${songs[@]}"
 
 # Demucs nests output under the model name; flatten it to "<song>/<stem>.mp3"

@@ -91,8 +91,10 @@
     .deck-controls .sync.flash { background: var(--c); color: #071016; }
     .deck-controls .loop.on { background: var(--c); color: #071016; border-color: var(--c); }
     .stem-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-    .stem-row .btn { flex: 1; padding: 6px 4px; font-size: 11px; opacity: .45; }
-    .stem-row .btn.on { opacity: 1; background: var(--c); color: #071016; border-color: var(--c); }
+    .stem-row .btn { flex: 1; padding: 6px 4px 9px; font-size: 11px; position: relative; overflow: hidden; color: var(--muted); }
+    .stem-row .btn.on { background: var(--c); color: #071016; border-color: var(--c); }
+    .stem-row .lvl { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: var(--c); box-shadow: 0 0 6px var(--c); transition: width 60ms linear; }
+    .stem-row .btn.on .lvl { background: #071016; box-shadow: none; }
     .tempo-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); }
     .tempo-row input { flex: 1; accent-color: var(--c); }
     .tempo-row .tv { width: 50px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
@@ -802,14 +804,18 @@
             let title = song, artist = '';
             if (match) { title = match.title; artist = match.artist; }
             else if (song.includes(' - ')) { [artist, title] = song.split(' - ', 2).map(x => x.trim()); }
-            // Tempo from the drums stem; waveform from the loudest part at each point
+            // Waveform from the loudest part at each point. Tempo comes from all the parts added back
+            // together — swung drums on their own (amapiano especially) fool the detector
             const drums = await ctx.decodeAudioData(await g.drums.arrayBuffer());
-            const tempo = detectTempo(drums, match && match.bpm);
+            const mix = new Float32Array(drums.getChannelData(0));
             let peaks = peaksOf(drums);
             for (const n of ['bass', 'other', 'vocals']) {
-              const p = peaksOf(await ctx.decodeAudioData(await g[n].arrayBuffer()));
+              const buf = await ctx.decodeAudioData(await g[n].arrayBuffer()), ch = buf.getChannelData(0);
+              for (let i = 0, len = Math.min(mix.length, ch.length); i < len; i++) mix[i] += ch[i];
+              const p = peaksOf(buf);
               peaks = peaks.map((v, i) => Math.max(v, p[i] || 0));
             }
+            const tempo = detectTempo({ sampleRate: drums.sampleRate, getChannelData: () => mix }, match && match.bpm);
             const t = {
               id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), title, artist, fileName: song,
               bpm: tempo ? tempo.bpm : null, offset: tempo ? tempo.offset : 0, duration: drums.duration,
@@ -882,21 +888,30 @@
             <button class="btn loop" title="Loop 4 beats" hidden>LOOP 4</button>
             <button class="btn tap" title="Tap along to the beat to set the BPM" hidden>TAP</button>
           </div>
-          <div class="stem-row" hidden>${STEMS.map(([n, label]) => `<button class="btn on" data-stem="${n}" title="Turn the ${label.toLowerCase()} on or off">${label}</button>`).join('')}</div>
+          <div class="stem-row" hidden>${STEMS.map(([n, label]) => `<button class="btn on" data-stem="${n}" title="Turn the ${label.toLowerCase()} on or off — the light shows how loud this part is right now">${label}<i class="lvl"></i></button>`).join('')}</div>
           <div class="tempo-row">Tempo <input type="range" class="tempo" min="-30" max="30" step="0.1" value="0" data-default="0"><span class="tv">0.0%</span></div>`;
         d.canvas = $('canvas', d.root);
         d.audio = new Audio();
         d.audio.preservesPitch = true; d.audio.mozPreservesPitch = true; d.audio.webkitPreservesPitch = true;
         // d.audio is the clock (and the drums stem on a stem song); the other stems follow it
         d.stemGain = {};
+        // Each stem also feeds a meter before its on/off switch, so its light shows what's there even when muted
+        d.stemMeter = {};
+        const meter = (src, n) => {
+          d.stemMeter[n] = ctx.createAnalyser(); d.stemMeter[n].fftSize = 512;
+          d.stemMeter[n].buf = new Float32Array(512);
+          src.connect(d.stemMeter[n]);
+        };
         d.stemGain.drums = ctx.createGain(); d.stemGain.drums.connect(d.ch.input);
-        ctx.createMediaElementSource(d.audio).connect(d.stemGain.drums);
+        const mainSrc = ctx.createMediaElementSource(d.audio);
+        mainSrc.connect(d.stemGain.drums); meter(mainSrc, 'drums');
         d.followers = {};
         ['bass', 'other', 'vocals'].forEach(n => {
           const a = new Audio();
           a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
           d.stemGain[n] = ctx.createGain(); d.stemGain[n].connect(d.ch.input);
-          ctx.createMediaElementSource(a).connect(d.stemGain[n]);
+          const src = ctx.createMediaElementSource(a);
+          src.connect(d.stemGain[n]); meter(src, n);
           d.followers[n] = a;
         });
         const followers = () => d.track && d.track.stems ? Object.values(d.followers) : [];
@@ -1505,8 +1520,25 @@
           $(`.mix-ch[data-ch="${d.id}"] .vu i`).style.height = (lvl * 100) + '%';
         });
       }
+      function drawStemLights() {
+        decks.forEach(d => {
+          const row = $('.stem-row', d.root);
+          if (row.hidden) return;
+          STEM_NAMES.forEach(n => {
+            const m = d.stemMeter[n];
+            // Peak with a slow fall, so short drum hits light up as clearly as held notes
+            let peak = 0;
+            if (d.playing) {
+              m.getFloatTimeDomainData(m.buf);
+              for (let i = 0; i < m.buf.length; i++) peak = Math.max(peak, Math.abs(m.buf[i]));
+            }
+            m.lvl = Math.max(Math.min(1, peak * 1.6), (m.lvl || 0) * 0.9);
+            $(`[data-stem="${n}"] .lvl`, row).style.width = (m.lvl * 100) + '%';
+          });
+        });
+      }
       (function frame() {
-        decks.forEach(drawDeck); drawVU(); updateScaleGuide();
+        decks.forEach(drawDeck); drawVU(); drawStemLights(); updateScaleGuide();
         requestAnimationFrame(frame);
       })();
 
