@@ -214,6 +214,7 @@
             <div class="lbls"><b>A</b><span class="hint">Crossfader</span><b>B</b></div>
             <input type="range" id="xf" min="0" max="1" step="0.005" value="0.5" data-default="0.5">
           </div>
+          <div class="hint" style="margin-top:8px">&#127911; CUE: wear headphones &mdash; left ear is the main mix, right ear is the cued deck.</div>
         </div>
         <div class="panel deck" id="deckB" data-deck="B"></div>
       </div>
@@ -264,7 +265,16 @@
       const master = ctx.createGain(); master.gain.value = 0.85;
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.2;
-      master.connect(comp); comp.connect(ctx.destination);
+      master.connect(comp);
+      // Headphone cue (split cue): while any deck's 🎧 is on, the main mix moves to the left ear
+      // and the cued decks play in the right ear, so you can check a mix before the crowd hears it
+      const mainOut = ctx.createGain(); comp.connect(mainOut); mainOut.connect(ctx.destination);
+      const mainLeft = ctx.createGain(); mainLeft.gain.value = 0;
+      const panLeft = ctx.createStereoPanner(); panLeft.pan.value = -1;
+      comp.connect(mainLeft); mainLeft.connect(panLeft); panLeft.connect(ctx.destination);
+      const cueBus = ctx.createGain(); cueBus.gain.value = 0;
+      const panRight = ctx.createStereoPanner(); panRight.pan.value = 1;
+      cueBus.connect(panRight); panRight.connect(ctx.destination);
       const recDest = ctx.createMediaStreamDestination ? ctx.createMediaStreamDestination() : null;
       if (recDest) comp.connect(recDest);
       const wake = () => { if (ctx.state !== 'running') ctx.resume(); };
@@ -301,6 +311,9 @@
         c.filt.connect(c.fader); c.fader.connect(c.xf); c.xf.connect(master); c.xf.connect(c.an);
         // Echo is post-fader but skips the crossfader, so an "echo out" keeps ringing after you fade the deck away
         c.fader.connect(c.echoSend); c.echoSend.connect(c.delay); c.delay.connect(echoLp); echoLp.connect(c.fb); c.fb.connect(c.delay); echoLp.connect(master);
+        // Cue is pre-fader: you can hear the deck in your headphones with its fader and crossfader down
+        c.cueSend = ctx.createGain(); c.cueSend.gain.value = 0;
+        c.filt.connect(c.cueSend); c.cueSend.connect(cueBus);
         c.vuBuf = new Float32Array(c.an.fftSize);
         return c;
       }
@@ -762,7 +775,9 @@
         }
         return out.map(v => mx ? +(v / mx).toFixed(3) : 0);
       }
-      async function addFiles(files) {
+      // `forced`: the crate track the user picked this file for, whatever the file is called
+      let pendingCrate = null;
+      async function addFiles(files, forced = null) {
         const list = [...files].filter(f => f.type.startsWith('audio') || /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(f.name));
         if (!list.length) { toast('Those files are not audio.'); return; }
         for (const file of list) {
@@ -770,7 +785,7 @@
           try {
             const buf = await ctx.decodeAudioData(await file.arrayBuffer());
             const base = file.name.replace(/\.[^.]+$/, '');
-            const match = crateMatch(base);
+            const match = forced && list.length === 1 ? forced : crateMatch(base);
             let title = base, artist = '';
             if (match) { title = match.title; artist = match.artist; }
             else if (base.includes(' - ')) { [artist, title] = base.split(' - ', 2).map(s => s.trim()); }
@@ -1042,6 +1057,7 @@
           <label>LOW<input type="range" data-p="lo" min="-1" max="1" step="0.01" value="0" data-default="0"></label>
           <label class="knob-filter">FILTER<input type="range" data-p="filter" min="-1" max="1" step="0.01" value="0" data-default="0"></label>
           <button class="btn echo" title="Echo: turn on, then pull the fader down for an echo-out">ECHO</button>
+          <button class="btn hp" title="Headphone cue: hear this deck in your right ear (main mix stays in your left) without the crowd hearing it">&#127911; CUE</button>
           <div class="fader-wrap"><input type="range" class="vfader" data-p="vol" min="0" max="1" step="0.01" value="0.85" data-default="0.85"><div class="vu"><i></i></div></div>
         </div>`).join('');
       $$('.mix-ch').forEach(el => {
@@ -1057,12 +1073,23 @@
           inp.addEventListener('dblclick', () => { inp.value = inp.dataset.default; apply(); });
           apply();
         });
+        $('.hp', el).addEventListener('click', e => {
+          d.cueOn = e.currentTarget.classList.toggle('on');
+          applyCue();
+        });
         $('.echo', el).addEventListener('click', e => {
           const on = e.currentTarget.classList.toggle('on');
           c.delay.delayTime.setValueAtTime(d.bpm ? Math.min(1.9, 0.75 * 60 / effBpm(d)) : 0.4, ctx.currentTime);
           c.echoSend.gain.setTargetAtTime(on ? 0.6 : 0, ctx.currentTime, 0.02);
         });
       });
+      function applyCue() {
+        const any = decks.some(d => d.cueOn), t = ctx.currentTime;
+        mainOut.gain.setTargetAtTime(any ? 0 : 1, t, 0.01);
+        mainLeft.gain.setTargetAtTime(any ? 1 : 0, t, 0.01);
+        cueBus.gain.setTargetAtTime(any ? 0.9 : 0, t, 0.01);
+        decks.forEach(d => d.ch.cueSend.gain.setTargetAtTime(d.cueOn ? 1 : 0, t, 0.01));
+      }
       function applyXfade() {
         const x = +$('#xf').value, t = ctx.currentTime;
         deckA.ch.xf.gain.setTargetAtTime(Math.cos(x * Math.PI / 2), t, 0.01);
@@ -1289,7 +1316,7 @@
             const mine = myTracks.find(t => t.crate === c.id && t.title === title);
             return `<li><b>${esc(title)}</b> — ${esc(artist)} <span class="hint">${mine && mine.bpm ? mine.bpm + ' BPM' : bpm ? '~' + bpm + ' BPM' : ''}</span>
                   <span class="r">${mine ? `<span class="have">✓ in library</span><button class="ld a" data-load="A" data-track="${mine.id}">A</button><button class="ld b" data-load="B" data-track="${mine.id}">B</button>`
-                : `<button class="btn" data-addfile="1" style="padding:2px 8px;font-size:11px">+ Add file</button>`}</span></li>`;
+                : `<button class="btn" data-addfile="1" data-crate="${c.id}" data-title="${esc(title)}" style="padding:2px 8px;font-size:11px">+ Add file</button>`}</span></li>`;
           }).join('')}</ol>
             </div>`).join('');
         }
@@ -1303,7 +1330,14 @@
           if (ld.dataset.beat) loadGroove(d, ld.dataset.beat); else loadFile(d, ld.dataset.track);
           renderLibrary(); return;
         }
-        if (e.target.closest('#btnAdd, [data-addfile]')) { $('#fileIn').click(); return; }
+        const add = e.target.closest('#btnAdd, [data-addfile]');
+        if (add) {
+          const c = add.dataset.crate && CRATES.find(x => x.id === add.dataset.crate);
+          const tr = c && c.tracks.find(([title]) => title === add.dataset.title);
+          pendingCrate = tr ? { title: tr[0], artist: tr[1], bpm: tr[2], crate: c.id } : null;
+          $('#fileIn').multiple = !pendingCrate;
+          $('#fileIn').click(); return;
+        }
         const del = e.target.closest('[data-del]');
         if (del) {
           const t = myTracks.find(x => x.id === del.dataset.del);
@@ -1320,7 +1354,10 @@
         t.bpm = v; DB.put(t);
         decks.forEach(d => { if (d.track === t) { d.bpm = v; renderDeck(d); } });
       });
-      $('#fileIn').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+      $('#fileIn').addEventListener('change', e => {
+        addFiles(e.target.files, pendingCrate);
+        pendingCrate = null; e.target.multiple = true; e.target.value = '';
+      });
 
       // =====================================================================
       // DRAWING (waveforms, beat lights, meters)
