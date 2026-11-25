@@ -1,0 +1,1493 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DJ Studio</title>
+  <style>
+    :root {
+      --bg: #0b0c10; --panel: #14161d; --panel2: #1c1f29; --line: #2a2e3a; --text: #e8e9ee; --muted: #8a8fa3;
+      --a: #22d3ee; --b: #f472b6; --gold: #f0a84e; --ok: #4ade80; --warn: #facc15; --bad: #f87171;
+      --us: #60a5fa; --sa: #fbbf24; --amapiano: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    body { min-height: 100vh; }
+    a { color: inherit; }
+    button { font: inherit; }
+
+    header.top {
+      display: flex; align-items: center; gap: 10px; padding: 10px 16px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 30;
+      background: rgba(11, 12, 16, .92); backdrop-filter: blur(8px);
+    }
+    header.top h1 { font-size: 20px; margin: 0 auto 0 4px; letter-spacing: .4px; }
+    .btn {
+      background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+      padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap;
+    }
+    .btn:hover { border-color: #4a5065; }
+    .btn.on { background: var(--text); color: var(--bg); }
+    .btn.rec.on { background: var(--bad); color: #fff; border-color: var(--bad); animation: blink 1s infinite alternate; }
+    @keyframes blink { to { opacity: .6; } }
+    .master { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+    .studio { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 14px; padding: 14px 16px 40px; align-items: start; }
+    @media (max-width: 1050px) { .studio { grid-template-columns: minmax(0, 1fr); } .piano-panel { order: 2; } }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; min-width: 0; }
+    .panel h2 { font-size: 15px; margin: 0; }
+    .panel h3 { font-size: 13px; margin: 14px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .hint { font-size: 12px; color: var(--muted); }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; font-size: 13px; }
+    select, input[type=number] { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 5px 7px; font-size: 13px; }
+    input[type=range] { accent-color: var(--text); }
+
+    /* ---------- Piano ---------- */
+    .piano-panel { position: sticky; top: 64px; }
+    @media (max-width: 1050px) { .piano-panel { position: static; } }
+    .scale-guide { font-size: 12px; padding: 7px 9px; border-radius: 8px; background: var(--panel2); color: var(--muted); min-height: 32px; }
+    .scale-guide b { color: var(--gold); }
+    .pkeys { position: relative; height: 150px; user-select: none; -webkit-user-select: none; touch-action: none; margin-top: 10px; }
+    .pk { position: absolute; top: 0; cursor: pointer; }
+    .pk.white { bottom: 0; background: linear-gradient(#f6f6f8, #d6d7de); border: 1px solid #777; border-radius: 0 0 6px 6px; z-index: 1; }
+    .pk.black { height: 60%; background: linear-gradient(#30323b, #0c0d11); border-radius: 0 0 4px 4px; z-index: 2; }
+    .pk .lbl { position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; font-size: 10px; font-weight: 700; color: #555; pointer-events: none; }
+    .pk.black .lbl { color: #aaa; }
+    .pk .nn { position: absolute; left: 0; right: 0; bottom: 20px; text-align: center; font-size: 9px; color: #999; pointer-events: none; }
+    .pk.white.in-scale { background: linear-gradient(#fff7ea, #f2d7a6); }
+    .pk.black.in-scale { background: linear-gradient(#5d4620, #2a1f0c); }
+    .pk.white.chord { background: linear-gradient(#ffd79a, #f0a84e); }
+    .pk.black.chord { background: linear-gradient(#c3802c, #6b4310); }
+    .pk.down { filter: brightness(.78); }
+    .pads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .pad {
+      aspect-ratio: 1.6; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text);
+      font-size: 13px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    }
+    .pad span { font-size: 20px; }
+    .pad:active, .pad.hit { background: var(--gold); color: #1a1205; }
+
+    /* ---------- Decks ---------- */
+    .decks { display: grid; grid-template-columns: minmax(0, 1fr) 210px minmax(0, 1fr); gap: 12px; }
+    @media (max-width: 780px) { .decks { grid-template-columns: minmax(0, 1fr); } }
+    .deck { --c: var(--a); border-top: 3px solid var(--c); }
+    .deck[data-deck=B] { --c: var(--b); }
+    .deck-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .deck-tag { width: 30px; height: 30px; flex: none; border-radius: 8px; background: var(--c); color: #071016; font-weight: 900; display: grid; place-items: center; }
+    .deck-title { min-width: 0; }
+    .deck-title b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .deck-title span { font-size: 12px; color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    canvas.wave { width: 100%; height: 72px; display: block; background: #0c0e13; border-radius: 8px; cursor: pointer; }
+    .deck-info { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+    .deck-info .bpm { font-size: 20px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+    .deck-info .key { padding: 2px 7px; border-radius: 6px; background: var(--panel2); color: var(--text); font-weight: 700; }
+    .deck-info .time { font-variant-numeric: tabular-nums; margin-left: auto; }
+    .leds { display: flex; gap: 5px; }
+    .leds i { width: 10px; height: 10px; border-radius: 50%; background: #2a2e3a; }
+    .leds i.on { background: var(--c); box-shadow: 0 0 8px var(--c); }
+    .deck-controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .deck-controls .btn { padding: 7px 10px; }
+    .deck-controls .play { width: 46px; height: 46px; border-radius: 50%; font-size: 18px; padding: 0; background: var(--c); color: #071016; border: none; }
+    .deck-controls .sync.flash { background: var(--c); color: #071016; }
+    .deck-controls .loop.on { background: var(--c); color: #071016; border-color: var(--c); }
+    .tempo-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .tempo-row input { flex: 1; accent-color: var(--c); }
+    .tempo-row .tv { width: 50px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+    /* ---------- Mixer ---------- */
+    .mixer h2 { text-align: center; margin-bottom: 8px; }
+    .mix-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mix-ch { display: flex; flex-direction: column; gap: 4px; --c: var(--a); }
+    .mix-ch[data-ch=B] { --c: var(--b); }
+    .mix-ch .ch-label { text-align: center; font-weight: 900; color: var(--c); }
+    .mix-ch label { font-size: 10px; color: var(--muted); letter-spacing: .5px; display: flex; flex-direction: column; }
+    .mix-ch input[type=range] { width: 100%; accent-color: var(--c); }
+    .mix-ch .echo.on { background: var(--c); color: #071016; border-color: var(--c); }
+    .mix-ch .btn { padding: 5px 4px; font-size: 11px; }
+    .fader-wrap { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+    input.vfader { writing-mode: vertical-lr; direction: rtl; width: 26px; height: 120px; }
+    .vu { width: 8px; height: 120px; background: #0c0e13; border-radius: 4px; position: relative; overflow: hidden; }
+    .vu i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(to top, var(--ok), var(--warn) 70%, var(--bad)); }
+    .xfade { margin-top: 12px; }
+    .xfade .lbls { display: flex; justify-content: space-between; font-size: 11px; font-weight: 900; }
+    .xfade .lbls b:first-child { color: var(--a); } .xfade .lbls b:last-child { color: var(--b); }
+    .xfade input { width: 100%; }
+
+    /* ---------- Library ---------- */
+    .library { margin-top: 12px; }
+    .lib-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .tabs { display: flex; gap: 4px; background: var(--panel2); padding: 4px; border-radius: 10px; }
+    .tabs button { background: none; border: 0; color: var(--muted); padding: 6px 10px; border-radius: 7px; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .tabs button.on { background: var(--text); color: var(--bg); }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .chip { border: 1px solid var(--line); background: none; color: var(--muted); padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .chip.on { color: var(--text); border-color: var(--text); }
+    .lib-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+    .item { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .item .t { font-weight: 700; font-size: 14px; }
+    .item .m { font-size: 12px; color: var(--muted); }
+    .item .acts { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: auto; }
+    .ld { border: 0; border-radius: 7px; padding: 5px 12px; font-weight: 900; cursor: pointer; color: #071016; }
+    .ld.a { background: var(--a); } .ld.b { background: var(--b); }
+    .gbadge { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px; text-transform: uppercase; letter-spacing: .5px; color: #0b0c10; }
+    .gbadge.us { background: var(--us); } .gbadge.sa { background: var(--sa); } .gbadge.amapiano { background: var(--amapiano); }
+    .flow { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+    .flow.perfect { background: rgba(74, 222, 128, .15); color: var(--ok); }
+    .flow.tempo { background: rgba(250, 204, 21, .13); color: var(--warn); }
+    .flow.key { background: rgba(96, 165, 250, .15); color: var(--us); }
+    .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    .drop.over { border-color: var(--gold); color: var(--gold); }
+    .crate { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .crate .ch { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .crate .ch b { font-size: 15px; }
+    .crate ol { margin: 8px 0 0; padding-left: 22px; }
+    .crate li { font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+    .crate li:last-child { border-bottom: 0; }
+    .crate li .r { display: inline-flex; gap: 5px; margin-left: 6px; vertical-align: middle; }
+    .crate li .ld { padding: 2px 9px; font-size: 11px; }
+    .have { color: var(--ok); font-weight: 700; font-size: 11px; }
+    .del { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; margin-left: auto; }
+    .bpm-in { width: 64px; }
+
+    /* ---------- Guide + toast ---------- */
+    .guide-spot { position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .62); pointer-events: none; z-index: 60; transition: all .25s; outline: 2px solid var(--gold); }
+    .guide-card {
+      position: fixed; z-index: 61; width: min(360px, calc(100vw - 32px)); background: #fff; color: #15161b; border-radius: 14px; padding: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+    }
+    .guide-card h4 { margin: 0 0 6px; font-size: 16px; }
+    .guide-card p { margin: 0 0 12px; font-size: 14px; line-height: 1.45; }
+    .guide-card .gbtns { display: flex; gap: 8px; align-items: center; }
+    .guide-card .gbtns span { font-size: 12px; color: #777; margin-right: auto; }
+    .guide-card .btn { background: #eee; color: #15161b; border-color: #ddd; }
+    .guide-card .btn.primary { background: #15161b; color: #fff; }
+    .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #fff; color: #111; padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 70; box-shadow: 0 8px 30px rgba(0, 0, 0, .4); opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100vw - 32px); }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="btn" href="index.html">&larr; Piano Studio</a>
+    <h1>&#127911; DJ Studio</h1>
+    <button class="btn" id="btnQuick" title="Load two beats that mix well">&#9889; Quick Start</button>
+    <button class="btn" id="btnGuide">&#10067; Guide</button>
+    <button class="btn rec" id="btnRec" title="Record everything you hear">&#9210; Record</button>
+    <a class="btn" id="recLink" hidden download="my-dj-mix.webm">&#11015; Download mix</a>
+    <label class="master">Master <input type="range" id="masterVol" min="0" max="1" step="0.01" value="0.85"></label>
+  </header>
+
+  <main class="studio">
+    <!-- LEFT: piano, independent from the decks -->
+    <section class="panel piano-panel" id="pianoPanel">
+      <h2>&#127929; Your Piano</h2>
+      <div class="hint">Plays on top of the mix &mdash; the crossfader never touches it.</div>
+      <div class="row">
+        <select id="pianoSound" title="Piano sound">
+          <option value="keys">Grand Piano</option>
+          <option value="rhodes">Electric Piano</option>
+          <option value="pluck">Amapiano Pluck</option>
+          <option value="lead">Synth Lead</option>
+          <option value="organ">Organ</option>
+          <option value="pad">Warm Pad</option>
+        </select>
+        <button class="btn" id="octDown" title="Octave down">&minus;</button>
+        <b id="octLabel">C3</b>
+        <button class="btn" id="octUp" title="Octave up">+</button>
+        <button class="btn" id="btnSustain" title="Sustain pedal (or hold Shift)">Sustain</button>
+      </div>
+      <div class="row"><span class="hint">Volume</span><input type="range" id="pianoVol" min="0" max="1" step="0.01" value="0.8" style="flex:1"></div>
+      <div class="scale-guide" id="scaleGuide">Play a deck and the keys that fit its key light up.</div>
+      <div class="pkeys" id="pianoKeys"></div>
+      <div class="hint" style="margin-top:8px">Your keyboard: <b>Z S X D C V…</b> lower row &middot; <b>Q 2 W 3 E R…</b> upper row &middot; hold <b>Shift</b> to sustain</div>
+      <h3>FX Pads</h3>
+      <div class="pads" id="pads"></div>
+    </section>
+
+    <!-- RIGHT: decks, mixer, library -->
+    <section style="min-width:0">
+      <div class="decks">
+        <div class="panel deck" id="deckA" data-deck="A"></div>
+        <div class="panel mixer" id="mixer">
+          <h2>Mixer</h2>
+          <div class="mix-cols" id="mixCols"></div>
+          <div class="xfade" id="xfader">
+            <div class="lbls"><b>A</b><span class="hint">Crossfader</span><b>B</b></div>
+            <input type="range" id="xf" min="0" max="1" step="0.005" value="0.5" data-default="0.5">
+          </div>
+        </div>
+        <div class="panel deck" id="deckB" data-deck="B"></div>
+      </div>
+
+      <div class="panel library" id="library">
+        <div class="lib-head">
+          <div class="tabs">
+            <button data-tab="beats" class="on">&#129345; Built-in Beats</button>
+            <button data-tab="music" id="tabMusic">&#128193; My Music</button>
+            <button data-tab="crates">&#128191; Starter Crates</button>
+          </div>
+          <span class="hint" id="libHint"></span>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div id="libBody"></div>
+        <input type="file" id="fileIn" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" multiple hidden>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (() => {
+      'use strict';
+      const $ = (s, r = document) => r.querySelector(s);
+      const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+      const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+      const noteMidi = n => { const m = /^([A-G]#?)(-?\d)$/.exec(n); return NOTE_NAMES.indexOf(m[1]) + (parseInt(m[2], 10) + 1) * 12; };
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const store = {
+        get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+      };
+
+      let toastTimer = null;
+      function toast(msg, ms = 2600) {
+        const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+      }
+
+      // =====================================================================
+      // AUDIO GRAPH
+      // =====================================================================
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const master = ctx.createGain(); master.gain.value = 0.85;
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.2;
+      master.connect(comp); comp.connect(ctx.destination);
+      const recDest = ctx.createMediaStreamDestination ? ctx.createMediaStreamDestination() : null;
+      if (recDest) comp.connect(recDest);
+      const wake = () => { if (ctx.state !== 'running') ctx.resume(); };
+      document.addEventListener('pointerdown', wake, true);
+      document.addEventListener('keydown', wake, true);
+
+      const noiseBuf = (() => {
+        const b = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), d = b.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        return b;
+      })();
+      const satCurve = (() => {
+        const n = 1024, c = new Float32Array(n);
+        for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(2.2 * x); }
+        return c;
+      })();
+
+      function makeChannel() {
+        const c = {};
+        c.input = ctx.createGain();
+        c.gate = ctx.createGain();
+        c.lo = ctx.createBiquadFilter(); c.lo.type = 'lowshelf'; c.lo.frequency.value = 220;
+        c.mid = ctx.createBiquadFilter(); c.mid.type = 'peaking'; c.mid.frequency.value = 1000; c.mid.Q.value = 0.8;
+        c.hi = ctx.createBiquadFilter(); c.hi.type = 'highshelf'; c.hi.frequency.value = 3200;
+        c.filt = ctx.createBiquadFilter(); c.filt.type = 'lowpass'; c.filt.frequency.value = 22000; c.filt.Q.value = 0.7;
+        c.fader = ctx.createGain(); c.fader.gain.value = 0.85;
+        c.xf = ctx.createGain();
+        c.an = ctx.createAnalyser(); c.an.fftSize = 1024;
+        c.echoSend = ctx.createGain(); c.echoSend.gain.value = 0;
+        c.delay = ctx.createDelay(2); c.delay.delayTime.value = 0.5;
+        c.fb = ctx.createGain(); c.fb.gain.value = 0.5;
+        const echoLp = ctx.createBiquadFilter(); echoLp.type = 'lowpass'; echoLp.frequency.value = 3500;
+        c.input.connect(c.gate); c.gate.connect(c.lo); c.lo.connect(c.mid); c.mid.connect(c.hi); c.hi.connect(c.filt);
+        c.filt.connect(c.fader); c.fader.connect(c.xf); c.xf.connect(master); c.xf.connect(c.an);
+        // Echo is post-fader but skips the crossfader, so an "echo out" keeps ringing after you fade the deck away
+        c.fader.connect(c.echoSend); c.echoSend.connect(c.delay); c.delay.connect(echoLp); echoLp.connect(c.fb); c.fb.connect(c.delay); echoLp.connect(master);
+        c.vuBuf = new Float32Array(c.an.fftSize);
+        return c;
+      }
+      const eqDb = v => v < 0 ? v * 40 : v * 8;   // -1 = full kill, +1 = +8 dB
+      function setFilter(c, v) {
+        const t = ctx.currentTime;
+        if (Math.abs(v) < 0.04) { c.filt.type = 'lowpass'; c.filt.Q.value = 0.7; c.filt.frequency.setTargetAtTime(22000, t, 0.02); }
+        else if (v < 0) { c.filt.type = 'lowpass'; c.filt.Q.value = 1.6; c.filt.frequency.setTargetAtTime(20000 * Math.pow(10, v * 2.3), t, 0.02); }
+        else { c.filt.type = 'highpass'; c.filt.Q.value = 1.6; c.filt.frequency.setTargetAtTime(20 * Math.pow(10, v * 2.7), t, 0.02); }
+      }
+
+      // =====================================================================
+      // INSTRUMENTS (all synthesised)
+      // =====================================================================
+      function noiseSrc(t, dur) {
+        const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+        s.start(t, Math.random() * 1.2); s.stop(t + dur);
+        return s;
+      }
+      function env(out, t, peak, decay, attack = 0.002) {
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(peak, t + attack);
+        g.gain.exponentialRampToValueAtTime(0.0008, t + attack + decay);
+        g.connect(out);
+        return g;
+      }
+      function filtered(type, freq, q, dest) {
+        const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; f.connect(dest); return f;
+      }
+      function playDrum(out, lane, t, vol = 1) {
+        if (lane === 'k') {
+          const o = ctx.createOscillator(); o.type = 'sine';
+          o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+          o.connect(env(out, t, 0.85 * vol, 0.42, 0.003)); o.start(t); o.stop(t + 0.5);
+        } else if (lane === 's') {
+          noiseSrc(t, 0.25).connect(filtered('bandpass', 1800, 0.7, env(out, t, 0.42 * vol, 0.2)));
+          const o = ctx.createOscillator(); o.type = 'triangle';
+          o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(160, t + 0.08);
+          o.connect(env(out, t, 0.3 * vol, 0.1)); o.start(t); o.stop(t + 0.14);
+        } else if (lane === 'c') {
+          const g = ctx.createGain(); g.connect(out);
+          [0, 0.011, 0.022].forEach((dt, i) => {
+            g.gain.setValueAtTime(0.0001, t + dt);
+            g.gain.linearRampToValueAtTime(0.42 * vol, t + dt + 0.001);
+            g.gain.exponentialRampToValueAtTime(i < 2 ? 0.05 : 0.0008, t + dt + (i < 2 ? 0.01 : 0.2));
+          });
+          noiseSrc(t, 0.25).connect(filtered('bandpass', 1150, 1.1, g));
+        } else if (lane === 'h') {
+          noiseSrc(t, 0.07).connect(filtered('highpass', 7500, 0.7, env(out, t, 0.17 * vol, 0.045)));
+        } else if (lane === 'o') {
+          noiseSrc(t, 0.35).connect(filtered('highpass', 6500, 0.7, env(out, t, 0.13 * vol, 0.3)));
+        } else if (lane === 'sh') {
+          noiseSrc(t, 0.1).connect(filtered('bandpass', 8500, 1.4, env(out, t, 0.2 * vol, 0.06, 0.006)));
+        } else if (lane === 'r') {
+          const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = 1700;
+          o.connect(env(out, t, 0.22 * vol, 0.03)); o.start(t); o.stop(t + 0.06);
+          noiseSrc(t, 0.03).connect(filtered('highpass', 3000, 0.7, env(out, t, 0.12 * vol, 0.015)));
+        } else if (lane === 'p') {
+          const o = ctx.createOscillator(); o.type = 'sine';
+          o.frequency.setValueAtTime(330, t); o.frequency.exponentialRampToValueAtTime(260, t + 0.1);
+          o.connect(env(out, t, 0.35 * vol, 0.18)); o.start(t); o.stop(t + 0.22);
+        }
+      }
+      function play808(out, t, midi, dur, vol = 1) {
+        const f = mtof(midi), end = t + Math.max(0.28, dur) + 0.06;
+        const o = ctx.createOscillator(); o.type = 'sine';
+        o.frequency.setValueAtTime(f * 2.2, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.045);
+        const ws = ctx.createWaveShaper(); ws.curve = satCurve;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5 * vol, t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.28 * vol, end - 0.07); g.gain.exponentialRampToValueAtTime(0.0008, end);
+        o.connect(ws); ws.connect(g); g.connect(out); o.start(t); o.stop(end + 0.02);
+      }
+      function playSub(out, t, midi, dur, vol = 1) {
+        const f = mtof(midi), end = t + Math.max(0.15, dur);
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.42 * vol, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.25 * vol, end); g.gain.exponentialRampToValueAtTime(0.0008, end + 0.06);
+        lp.connect(g); g.connect(out);
+        [['triangle', 1], ['sine', 0.6]].forEach(([type, a]) => {
+          const o = ctx.createOscillator(); o.type = type; o.frequency.value = f;
+          const og = ctx.createGain(); og.gain.value = a; o.connect(og); og.connect(lp); o.start(t); o.stop(end + 0.08);
+        });
+      }
+      function playSynthBass(out, t, midi, dur, vol = 1) {
+        const f = mtof(midi), end = t + Math.max(0.12, dur);
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 4;
+        lp.frequency.setValueAtTime(1500, t); lp.frequency.exponentialRampToValueAtTime(260, t + 0.16);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.3 * vol, t + 0.005);
+        g.gain.setValueAtTime(0.3 * vol, end); g.gain.exponentialRampToValueAtTime(0.0008, end + 0.05);
+        o.connect(lp); lp.connect(g); g.connect(out); o.start(t); o.stop(end + 0.07);
+      }
+      // The amapiano log drum: a bent, slightly overdriven tuned thump
+      function playLog(out, t, midi, vol = 1) {
+        const f = mtof(midi);
+        const o = ctx.createOscillator(); o.type = 'triangle';
+        o.frequency.setValueAtTime(f * 1.9, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.035);
+        const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f;
+        const ws = ctx.createWaveShaper(); ws.curve = satCurve;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(2400, t); lp.frequency.exponentialRampToValueAtTime(520, t + 0.25);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5 * vol, t + 0.003);
+        g.gain.exponentialRampToValueAtTime(0.17 * vol, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0008, t + 0.5);
+        o.connect(ws); o2.connect(ws); ws.connect(lp); lp.connect(g); g.connect(out);
+        o.start(t); o2.start(t); o.stop(t + 0.55); o2.stop(t + 0.55);
+      }
+
+      // Melodic voices with a release() so the piano can hold notes and the decks can schedule lengths
+      function makeVoice(kind, out, midi, t, vel = 1) {
+        const f = mtof(midi);
+        const rel = ctx.createGain(); rel.connect(out);
+        const e = ctx.createGain(); e.gain.value = 0; e.connect(rel);
+        const g = e.gain, oscs = [];
+        let relT = 0.2, natural = null;
+        const osc = (type, freq, amp, dest) => {
+          const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+          const gg = ctx.createGain(); gg.gain.value = amp; o.connect(gg); gg.connect(dest || e);
+          o.start(t); oscs.push(o); return o;
+        };
+        const lp = (f0, q) => { const b = ctx.createBiquadFilter(); b.type = 'lowpass'; b.Q.value = q; b.frequency.setValueAtTime(f0, t); b.connect(e); return b; };
+        const lfo = (rate, depth, param) => {
+          const l = ctx.createOscillator(); l.frequency.value = rate;
+          const lg = ctx.createGain(); lg.gain.value = depth; l.connect(lg); lg.connect(param); l.start(t); oscs.push(l);
+        };
+        switch (kind) {
+          case 'keys': {
+            const b = lp(Math.min(9000, f * 9), 0.4);
+            b.frequency.exponentialRampToValueAtTime(Math.min(4000, Math.max(500, f * 2.2)), t + 0.6);
+            osc('triangle', f, 1, b); osc('sine', f * 2, 0.28, b); osc('sine', f * 3, 0.08, b);
+            const pk = (f < 130 ? 0.16 : f < 260 ? 0.2 : 0.22) * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.006);
+            g.exponentialRampToValueAtTime(pk * 0.35, t + 0.5); g.exponentialRampToValueAtTime(pk * 0.015, t + 4.5);
+            relT = 0.3; natural = t + 4.6; break;
+          }
+          case 'rhodes': {
+            const trem = ctx.createGain(); trem.gain.value = 0.8; trem.connect(e);
+            lfo(4.5, 0.2, trem.gain);
+            osc('sine', f, 1, trem); osc('sine', f * 2, 0.16, trem); osc('triangle', f * 4, 0.03, trem);
+            const pk = 0.22 * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.005);
+            g.exponentialRampToValueAtTime(pk * 0.4, t + 0.8); g.exponentialRampToValueAtTime(pk * 0.02, t + 5);
+            relT = 0.35; natural = t + 5.1; break;
+          }
+          case 'pluck': {
+            const b = lp(3200, 2); b.frequency.exponentialRampToValueAtTime(650, t + 0.22);
+            osc('square', f, 0.45, b); osc('sawtooth', f * 1.006, 0.3, b);
+            const pk = 0.14 * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.003); g.exponentialRampToValueAtTime(0.0008, t + 0.55);
+            relT = 0.08; natural = t + 0.6; break;
+          }
+          case 'lead': {
+            const b = lp(2600, 2);
+            osc('sawtooth', f, 0.5, b); osc('sawtooth', f * 1.007, 0.5, b);
+            const pk = 0.09 * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.01); g.setTargetAtTime(pk * 0.75, t + 0.01, 0.2);
+            relT = 0.15; break;
+          }
+          case 'organ': {
+            [[1, 1], [2, 0.5], [3, 0.3], [0.5, 0.4], [4, 0.15]].forEach(([m, a]) => osc('sine', f * m, a));
+            const pk = 0.075 * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.012);
+            relT = 0.07; break;
+          }
+          case 'pad': {
+            const b = lp(1500, 0.8);
+            osc('sawtooth', f * 0.996, 0.5, b); osc('sawtooth', f * 1.004, 0.5, b);
+            const pk = 0.07 * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.35);
+            relT = 0.6; break;
+          }
+          case 'whistle': {
+            const o = osc('sine', f, 1);
+            lfo(5.5, f * 0.012, o.frequency);
+            const pk = 0.1 * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.06);
+            relT = 0.15; break;
+          }
+          case 'bell': {
+            osc('sine', f, 1); osc('sine', f * 2.76, 0.35);
+            const pk = 0.09 * vel;
+            g.setValueAtTime(0, t); g.linearRampToValueAtTime(pk, t + 0.003); g.exponentialRampToValueAtTime(0.0008, t + 1.4);
+            relT = 0.3; natural = t + 1.45; break;
+          }
+        }
+        if (natural) oscs.forEach(o => o.stop(natural));
+        let released = false;
+        return {
+          release(rt) {
+            if (released) return; released = true;
+            rt = Math.max(rt, ctx.currentTime);
+            rel.gain.setValueAtTime(1, rt); rel.gain.setTargetAtTime(0, rt, relT / 4);
+            const st = rt + relT * 1.6 + 0.05;
+            if (!natural || st < natural) oscs.forEach(o => { try { o.stop(st); } catch (err) { } });
+          }
+        };
+      }
+
+      // =====================================================================
+      // BUILT-IN BEATS — original grooves written for this app
+      // drums: 16th-note lanes ('X' accent, 'x' hit, 'g' ghost, '.' rest), repeated to fill 4 bars
+      // bass/lead: one token per 16th ('-' holds the previous note, '.' rest)
+      // chords: one chord per bar + a 16-step stab rhythm
+      // =====================================================================
+      const GENRES = { us: 'US Hip Hop', sa: 'SA Hip Hop', amapiano: 'Amapiano' };
+      const GROOVES = [
+        {
+          id: 'boombap', name: 'Boom Bap Avenue', genre: 'us', bpm: 90, key: 'Dm', swing: 0.12,
+          vibe: 'Dusty 90s boom bap with jazzy Rhodes',
+          drums: { k: 'X.......x.X.....X......x..x.....', s: '....X.......X...', h: 'x.x.x.x.x.x.x.x.', o: '..............x.' },
+          bass: { type: 'sub', bars: ['D2 - - - - - . D2 . . F2 - . . C2 -', 'A#1 - - - - - . A#1 . . A#1 - G1 - . .', 'G1 - - - - - . G1 . . A#1 - . . C2 -', 'A1 - - - - - . A1 . . C#2 - E2 - . .'] },
+          chords: { inst: 'rhodes', prog: ['Dm9', 'A#maj7', 'Gm9', 'A7'], rhythm: 'x.....x.........' }
+        },
+        {
+          id: 'westcoast', name: 'West Coast Cruise', genre: 'us', bpm: 94, key: 'Gm', swing: 0.08,
+          vibe: 'G-funk bounce, rubbery bass and a high whistle lead',
+          drums: { k: 'X.....x.X.......X.....x...x..x..', s: '....X.......X...', c: '....x.......x...', h: 'x.xxx.x.x.xxx.x.' },
+          bass: { type: 'synth', bars: ['G1 . G2 . . G1 . . F1 . . G1 - . A#1 .', 'C2 . C3 . . C2 . . A#1 . . C2 - . D2 .'] },
+          chords: { inst: 'rhodes', prog: ['Gm7', 'Cm9'], rhythm: '..x...x...x.....' },
+          lead: { type: 'whistle', bars: ['D6 - - - - - - - C6 - A#5 - G5 - - -', 'A#5 - - - - - - - . . . . . . . .', 'D6 - - - F6 - - - D6 - C6 - A#5 - - -', 'G5 - - - - - - - . . . . . . . .'] }
+        },
+        {
+          id: 'trap', name: 'Trap Lights', genre: 'us', bpm: 140, key: 'Cm',
+          vibe: 'Modern trap: rolling hats, long 808s, dark pads',
+          drums: { k: 'X.......x.....x...X.......x.....', s: '........X.......', h: 'x.x.x.x.x.xxx.x.x.x.x.x.xxxxx.x.' },
+          bass: { type: '808', bars: ['C2 - - - - - - - - - . . C2 - D#2 -', 'G#1 - - - - - - - - - . . G#1 - G1 -'] },
+          chords: { inst: 'pad', prog: ['Cm', 'G#', 'D#', 'G'], rhythm: 'x...............' },
+          lead: { type: 'bell', bars: ['C5 . D#5 . G5 . D#5 . C5 . D#5 . G5 . A#5 .', 'G#4 . C5 . D#5 . C5 . G#4 . C5 . D#5 . G5 .'] }
+        },
+        {
+          id: 'jozi', name: 'Jozi Nights', genre: 'sa', bpm: 96, key: 'Fm',
+          vibe: 'Smooth Joburg hip hop: knocking 808, late-night keys',
+          drums: { k: 'X..x......X..x..X.....x...x.....', c: '....X.......X...', h: 'x.x.x.x.x.x.x.x.', r: '..x....x..x.....' },
+          bass: { type: '808', bars: ['F1 - - - - - - - . . F1 - G#1 - . .', 'C#2 - - - - - - - . . C#2 - C2 - . .', 'A#1 - - - - - - - . . A#1 - C#2 - . .', 'C2 - - - - - - - . . C2 - A#1 - . .'] },
+          chords: { inst: 'rhodes', prog: ['Fm9', 'C#maj7', 'A#m7', 'C7'], rhythm: 'x.......x.......' }
+        },
+        {
+          id: 'motswako', name: 'Pitori Motswako', genre: 'sa', bpm: 98, key: 'Am', swing: 0.1,
+          vibe: 'Bouncy Pretoria-style rap beat with plucks and congas',
+          drums: { k: 'X.....x..xX.....X.....x...x..x..', s: '....X.......X...', h: 'x.x.x.x.x.x.x.xx', p: 'x..x..x...x..x..' },
+          bass: { type: 'sub', bars: ['A1 - - . . . A1 . C2 - . . E2 - D2 .', 'A1 - - . . . A1 . C2 - . . E2 - G2 .', 'F1 - - . . . F1 . A1 - . . C2 - E2 .', 'G1 - - . . . G1 . B1 - . . D2 - . .'] },
+          chords: { inst: 'pluck', prog: ['Am7', 'Am7', 'Fmaj7', 'G'], rhythm: '.x..x..x.x..x...' }
+        },
+        {
+          id: 'kasitrap', name: 'Kasi Trap', genre: 'sa', bpm: 136, key: 'D#m',
+          vibe: 'SA trap energy: busy hats, sliding 808, bell hook',
+          drums: { k: 'X.....x...x.....X.......x..x....', s: '........X.......', h: 'x.xxx.x.x.x.xxxxx.x.x.xxx.x.x.x.' },
+          bass: { type: '808', bars: ['D#2 - - - - - . . D#2 - - . F#2 - F2 -', 'B1 - - - - - . . B1 - - . A#1 - - -', 'F#1 - - - - - . . F#1 - - . A#1 - - -', 'A#1 - - - - - . . A#1 - - . C#2 - D#2 -'] },
+          chords: { inst: 'pad', prog: ['D#m', 'B', 'F#', 'A#m'], rhythm: 'x...............' },
+          lead: { type: 'bell', bars: ['D#5 . F#5 . A#5 . F#5 . D#6 . A#5 . F#5 . F5 .'] }
+        },
+        {
+          id: 'logdrum', name: 'Log Drum Sunday', genre: 'amapiano', bpm: 113, key: 'Am',
+          vibe: 'Classic amapiano: bouncing log drum, shakers, warm piano',
+          drums: { k: 'X...x...X...x...', r: '....x.......x...', sh: 'xgxgxgxgxgxgxgxg', h: '..x...x...x...x.' },
+          bass: { type: 'log', bars: ['A2 . . A2 . . A2 . . . C3 . A2 . . .', 'A2 . . A2 . . A2 . . . E3 . D3 . C3 .', 'F2 . . F2 . . F2 . . . A2 . F2 . . .', 'G2 . . G2 . . G2 . . . B2 . D3 . G2 .'] },
+          chords: { inst: 'keys', prog: ['Am9', 'Am9', 'Fmaj9', 'G6'], rhythm: 'x.....x.....x...' }
+        },
+        {
+          id: 'privateschool', name: 'Private School Keys', genre: 'amapiano', bpm: 112, key: 'Dm',
+          vibe: 'Soft, jazzy amapiano — lots of piano, gentle log drum',
+          drums: { k: 'x.......X.......', sh: 'xgxgxgxgxgxgxgxg', r: '..x.....x...x.x.', h: '..x...x...x...x.' },
+          bass: { type: 'log', bars: ['D3 . . . . . D3 . . . . . F3 . . .', 'A#2 . . . . . A#2 . . . . . C3 . . .', 'G2 . . . . . G2 . . . . . A#2 . . .', 'A2 . . . . . A2 . . . . . C#3 . E3 .'] },
+          chords: { inst: 'keys', prog: ['Dm9', 'A#maj9', 'Gm9', 'A7'], rhythm: 'x..x..x...x..x..' }
+        },
+        {
+          id: 'shaker', name: 'Shaker Season', genre: 'amapiano', bpm: 115, key: 'Gm',
+          vibe: 'Peak-time amapiano: four-on-the-floor, claps, busy log drum',
+          drums: { k: 'X...X...X...X...', c: '....X.......X...', sh: 'xxgxxxgxxxgxxxgx', h: '..x...x...x...x.', o: '..............x.', p: '...x..x....x.x..' },
+          bass: { type: 'log', bars: ['G2 . G2 . . . G3 . G2 . . A#2 . . C3 .', 'D#2 . D#2 . . . D#3 . D#2 . . G2 . . A#2 .', 'C3 . C3 . . . C3 . A#2 . . C3 . . D3 .', 'D3 . D3 . . . D3 . D3 . . F#3 . . A3 .'] },
+          chords: { inst: 'pluck', prog: ['Gm7', 'D#maj7', 'Cm9', 'D7'], rhythm: '..x...x...x...x.' }
+        }
+      ];
+
+      const CHORD_IV = { '': [0, 4, 7], m: [0, 3, 7], m7: [0, 3, 7, 10], maj7: [0, 4, 7, 11], '7': [0, 4, 7, 10], m9: [0, 3, 10, 14], maj9: [0, 4, 11, 14], '6': [0, 4, 7, 9], '9': [0, 4, 10, 14] };
+      function parseChord(name) {
+        const m = /^([A-G]#?)(maj9|maj7|m9|m7|m|7|6|9)?$/.exec(name);
+        if (!m) throw new Error('bad chord ' + name);
+        const pc = NOTE_NAMES.indexOf(m[1]);
+        const root = 55 + ((pc - 7 + 12) % 12);   // voice the chord between G3 and F#4
+        const iv = CHORD_IV[m[2] || ''];
+        return { pc, minor: /^m(?!aj)/.test(m[2] || ''), notes: iv.map(i => root + i), pcs: iv.map(i => (pc + i) % 12) };
+      }
+      function parseLine(bars, L) {
+        const toks = bars.join(' ').trim().split(/\s+/), out = [];
+        const seq = []; for (let i = 0; i < L; i++) seq.push(toks[i % toks.length]);
+        seq.forEach((tk, i) => {
+          if (tk === '.' || tk === '-') return;
+          let len = 1; while (i + len < L && seq[i + len] === '-') len++;
+          out.push({ step: i, midi: noteMidi(tk), len });
+        });
+        return out;
+      }
+      function compileGroove(g) {
+        const L = 64, steps = Array.from({ length: L }, () => []);
+        Object.entries(g.drums).forEach(([lane, pat]) => {
+          for (let i = 0; i < L; i++) {
+            const c = pat[i % pat.length];
+            if (c !== '.') steps[i].push({ kind: 'drum', lane, vol: c === 'X' ? 1.15 : c === 'g' ? 0.45 : 0.9 });
+          }
+        });
+        if (g.bass) parseLine(g.bass.bars, L).forEach(n => steps[n.step].push({ kind: 'bass', type: g.bass.type, midi: n.midi, len: n.len }));
+        if (g.lead) parseLine(g.lead.bars, L).forEach(n => steps[n.step].push({ kind: 'lead', type: g.lead.type, midi: n.midi, len: n.len }));
+        const chordsByBar = [];
+        for (let bar = 0; bar < 4; bar++) {
+          const name = g.chords.prog[bar % g.chords.prog.length], ch = parseChord(name);
+          chordsByBar.push({ name, ...ch });
+          const hits = [...g.chords.rhythm].map((c, i) => c !== '.' ? i : -1).filter(i => i >= 0);
+          hits.forEach((h, hi) => {
+            const next = hi + 1 < hits.length ? hits[hi + 1] : 16;
+            steps[bar * 16 + h].push({ kind: 'chord', inst: g.chords.inst, notes: ch.notes, len: next - h });
+          });
+        }
+        return { ...g, L, steps, chordsByBar, camelot: camelotOf(g.key) };
+      }
+
+      // Camelot wheel: keys next to each other on the wheel mix without clashing
+      const CAMELOT = {
+        'G#m': '1A', 'D#m': '2A', 'A#m': '3A', 'Fm': '4A', 'Cm': '5A', 'Gm': '6A', 'Dm': '7A', 'Am': '8A', 'Em': '9A', 'Bm': '10A', 'F#m': '11A', 'C#m': '12A',
+        'B': '1B', 'F#': '2B', 'C#': '3B', 'G#': '4B', 'D#': '5B', 'A#': '6B', 'F': '7B', 'C': '8B', 'G': '9B', 'D': '10B', 'A': '11B', 'E': '12B'
+      };
+      function camelotOf(key) { return CAMELOT[key] || null; }
+      function keyCompat(a, b) {
+        if (!a || !b) return false;
+        const na = parseInt(a, 10), nb = parseInt(b, 10), la = a.slice(-1), lb = b.slice(-1);
+        if (na === nb) return true;
+        const d = Math.abs(na - nb);
+        return la === lb && (d === 1 || d === 11);
+      }
+      function tempoCompat(b1, b2) {
+        if (!b1 || !b2) return false;
+        return [1, 2, 0.5].some(m => Math.abs(b1 * m / b2 - 1) < 0.08);
+      }
+      const BEATS = GROOVES.map(compileGroove);
+      const beatById = id => BEATS.find(b => b.id === id);
+
+      // =====================================================================
+      // STARTER CRATES — real tracks to collect and add yourself (titles only; no audio is bundled)
+      // BPMs are rough guides (~); the app measures the real tempo when you add the file.
+      // =====================================================================
+      const CRATES = [
+        {
+          id: 'westcoast', name: '90s West Coast Classics', genre: 'us',
+          tip: 'They all sit around 90–96 BPM, so they beatmatch easily. Blend on the drums and swap the LOW knobs.',
+          tracks: [['Still D.R.E.', 'Dr. Dre ft. Snoop Dogg', 93], ["Nuthin' but a 'G' Thang", 'Dr. Dre ft. Snoop Dogg', 95], ['The Next Episode', 'Dr. Dre ft. Snoop Dogg', 95],
+          ['California Love', '2Pac ft. Dr. Dre', 92], ['Gin and Juice', 'Snoop Doggy Dogg', 95], ['Regulate', 'Warren G & Nate Dogg', 95]]
+        },
+        {
+          id: 'modernus', name: 'Modern US Hip Hop', genre: 'us',
+          tip: 'A 75 BPM track and a 150 BPM track share the same half-time feel, so they mix fine.',
+          tracks: [['In Da Club', '50 Cent', 90], ['Lose Yourself', 'Eminem', 86], ['HUMBLE.', 'Kendrick Lamar', 75], ['Money Trees', 'Kendrick Lamar ft. Jay Rock', 72],
+          ["God's Plan", 'Drake', 77], ['No Role Modelz', 'J. Cole', 100], ['SICKO MODE', 'Travis Scott', null], ['Mo Bamba', 'Sheck Wes', null]]
+        },
+        {
+          id: 'sahiphop', name: 'SA Hip Hop Braai Set', genre: 'sa',
+          tip: 'Mzansi bangers. Add the files and the app detects each BPM, then the flow badges show which ones mix.',
+          tracks: [['Doc Shebeleza', 'Cassper Nyovest', null], ["Ngud'", 'Kwesta ft. Cassper Nyovest', null], ['Roll Up', 'Emtee', null], ['Caracara', 'K.O ft. Kid X', null],
+          ['Fela in Versace', 'AKA ft. Kiddominant', null], ['Juice Back', 'Nasty C', null], ['SMA', 'Nasty C ft. Rowlene', null], ['Imali Eningi', 'Big Zulu ft. Riky Rick & Intaba Yase Dubai', null]]
+        },
+        {
+          id: 'piano1', name: 'Amapiano Sunday Starter', genre: 'amapiano',
+          tip: 'Amapiano sits around 110–115 BPM. Do long blends of 16–32 bars, and swap the log drums with the LOW knobs.',
+          tracks: [['Ke Star', 'Focalistic & Vigro Deep', null], ['Labantwana Ama Uber', 'Semi Tee, Miano & Kammu Dee', null],
+          ['Sponono', 'Kabza De Small & DJ Maphorisa ft. Wizkid, Burna Boy & Cassper Nyovest', null], ['Adiwele', 'Young Stunna & Kabza De Small', null]]
+        },
+        {
+          id: 'piano2', name: 'Amapiano Peak Time', genre: 'amapiano',
+          tip: 'Bring these in when the crowd is warm. Use ECHO on the outgoing track for a clean handover.',
+          tracks: [['Umlando', '9umba, Toss & Mdoovar', null], ['Mnike', 'Tyler ICU & Tumela_za', null], ['Tshwala Bam', 'TitoM & Yuppe', null],
+          ['Tanzania', 'Uncle Waffles', null], ['Water', 'Tyla', null]]
+        }
+      ];
+      const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      function crateMatch(fileName) {
+        const f = ' ' + norm(fileName) + ' ';
+        for (const c of CRATES) for (const [title, artist, bpm] of c.tracks) {
+          const t = norm(title), a = norm(artist).split(' ')[0];
+          if (t.length < 2 || !f.includes(' ' + t + ' ')) continue;
+          if (t.length >= 8 || f.includes(' ' + a + ' ')) return { title, artist, bpm, crate: c.id };
+        }
+        return null;
+      }
+
+      // =====================================================================
+      // MY MUSIC — files the user adds, kept in IndexedDB
+      // =====================================================================
+      const DB = {
+        db: null,
+        open() {
+          return new Promise(res => {
+            try {
+              const r = indexedDB.open('dj-studio', 1);
+              r.onupgradeneeded = () => r.result.createObjectStore('tracks', { keyPath: 'id' });
+              r.onsuccess = () => { this.db = r.result; res(); };
+              r.onerror = () => res();
+            } catch (e) { res(); }
+          });
+        },
+        tx(mode) { return this.db.transaction('tracks', mode).objectStore('tracks'); },
+        all() { return new Promise(res => { if (!this.db) return res([]); const r = this.tx('readonly').getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); }); },
+        put(t) { if (this.db) try { this.tx('readwrite').put(t); } catch (e) { } },
+        del(id) { if (this.db) try { this.tx('readwrite').delete(id); } catch (e) { } }
+      };
+      let myTracks = [];
+
+      // Tempo + first-beat detection from onset energy (autocorrelation)
+      function detectTempo(buf, hint) {
+        const sr = buf.sampleRate, data = buf.getChannelData(0), fps = 200, hop = Math.floor(sr / fps);
+        const start = data.length > sr * 70 ? Math.floor(sr * 20) : 0;
+        const segLen = Math.min(data.length - start, sr * 60);
+        const frames = Math.floor(segLen / hop);
+        if (frames < fps * 4) return null;
+        const energy = new Float32Array(frames), onset = new Float32Array(frames);
+        for (let f = 0; f < frames; f++) {
+          let s = 0; const o = start + f * hop;
+          for (let j = 0; j < hop; j++) { const v = data[o + j]; s += v * v; }
+          energy[f] = Math.sqrt(s / hop);
+          onset[f] = f ? Math.max(0, energy[f] - energy[f - 1]) : 0;
+        }
+        const minLag = Math.floor(fps * 60 / 190), maxLag = Math.ceil(fps * 60 / 60);
+        const ac = new Float32Array(maxLag + 2);
+        for (let lag = minLag - 1; lag <= maxLag + 1; lag++) {
+          let s = 0; for (let i = 0; i + lag < frames; i++) s += onset[i] * onset[i + lag];
+          ac[lag] = s;
+        }
+        let best = minLag; for (let lag = minLag; lag <= maxLag; lag++) if (ac[lag] > ac[best]) best = lag;
+        const a = ac[best - 1], b = ac[best], c = ac[best + 1], den = a - 2 * b + c;
+        const lag = best + (den ? 0.5 * (a - c) / den : 0);
+        let bpm = fps * 60 / lag;
+        while (bpm < 70) bpm *= 2;
+        while (bpm >= 170) bpm /= 2;
+        if (hint) {
+          const cands = [bpm, bpm * 2, bpm / 2].sort((x, y) => Math.abs(x / hint - 1) - Math.abs(y / hint - 1));
+          if (Math.abs(cands[0] / hint - 1) < 0.08) bpm = cands[0];
+        }
+        if (Math.abs(bpm - Math.round(bpm)) < 0.3) bpm = Math.round(bpm);
+        bpm = Math.round(bpm * 10) / 10;
+        const p = fps * 60 / bpm;
+        let bestPh = 0, bestSum = -1;
+        for (let ph = 0; ph < p; ph++) {
+          let s = 0; for (let k = ph; k < frames; k += p) s += onset[Math.round(k)] || 0;
+          if (s > bestSum) { bestSum = s; bestPh = ph; }
+        }
+        const period = 60 / bpm;
+        const offset = ((start / sr + bestPh / fps) % period + period) % period;
+        return { bpm, offset };
+      }
+      function peaksOf(buf, n = 900) {
+        const d = buf.getChannelData(0), step = Math.max(1, Math.floor(d.length / n)), out = [];
+        let mx = 0;
+        for (let i = 0; i < n; i++) {
+          let p = 0; const o = i * step;
+          for (let j = 0; j < step; j += 16) { const v = Math.abs(d[o + j] || 0); if (v > p) p = v; }
+          out.push(p); if (p > mx) mx = p;
+        }
+        return out.map(v => mx ? +(v / mx).toFixed(3) : 0);
+      }
+      async function addFiles(files) {
+        const list = [...files].filter(f => f.type.startsWith('audio') || /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(f.name));
+        if (!list.length) { toast('Those files are not audio.'); return; }
+        for (const file of list) {
+          toast(`Analysing ${file.name}…`, 60000);
+          try {
+            const buf = await ctx.decodeAudioData(await file.arrayBuffer());
+            const base = file.name.replace(/\.[^.]+$/, '');
+            const match = crateMatch(base);
+            let title = base, artist = '';
+            if (match) { title = match.title; artist = match.artist; }
+            else if (base.includes(' - ')) { [artist, title] = base.split(' - ', 2).map(s => s.trim()); }
+            const tempo = detectTempo(buf, match && match.bpm);
+            const t = {
+              id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), title, artist, fileName: file.name,
+              bpm: tempo ? tempo.bpm : null, offset: tempo ? tempo.offset : 0, duration: buf.duration,
+              peaks: peaksOf(buf), crate: match ? match.crate : null, blob: file
+            };
+            myTracks.push(t); DB.put(t);
+          } catch (e) { toast(`Couldn't read ${file.name}`); await new Promise(r => setTimeout(r, 1500)); }
+        }
+        toast(`Added ${list.length} track${list.length > 1 ? 's' : ''} ✓`);
+        if (libTab !== 'crates') libTab = 'music';
+        renderLibrary();
+      }
+
+      // =====================================================================
+      // DECKS
+      // =====================================================================
+      const decks = ['A', 'B'].map(id => ({
+        id, root: $('#deck' + id), ch: makeChannel(), type: null, g: null, track: null,
+        bpm: 0, offset: 0, key: null, camelot: null, tempo: 0, nudge: 0,
+        playing: false, anchorTime: 0, anchorBeat: 0, pausedBeat: 0, nextStep: 0,
+        cue: 0, loop: null, audio: null, url: null, taps: []
+      }));
+      const [deckA, deckB] = decks;
+      const other = d => d === deckA ? deckB : deckA;
+      const effBpm = d => d.bpm * (1 + d.tempo / 100) * (1 + d.nudge);
+      const rateOf = d => (1 + d.tempo / 100) * (1 + d.nudge);
+
+      decks.forEach(d => {
+        d.root.innerHTML = `
+          <div class="deck-head"><span class="deck-tag">${d.id}</span>
+            <div class="deck-title"><b class="title">Empty deck</b><span class="sub">Load a beat or song from the library below</span></div></div>
+          <canvas class="wave" title="Click to jump to a spot (songs)"></canvas>
+          <div class="deck-info"><span class="bpm">—</span><span class="hint">BPM</span><span class="key" title="Key (Camelot)">—</span>
+            <div class="leds"><i></i><i></i><i></i><i></i></div><span class="time">0:00</span></div>
+          <div class="deck-controls">
+            <button class="play" title="Play / pause">&#9654;</button>
+            <button class="btn cue" title="Playing: jump back to the cue point and stop. Stopped: set the cue point here.">CUE</button>
+            <button class="btn sync" title="Match this deck's tempo and beat to the other deck">SYNC</button>
+            <button class="btn nudge" data-dir="-1" title="Hold to slow down a little (line up the beats)">&#9664;&#9664;</button>
+            <button class="btn nudge" data-dir="1" title="Hold to speed up a little (line up the beats)">&#9654;&#9654;</button>
+            <button class="btn loop" title="Loop 4 beats" hidden>LOOP 4</button>
+            <button class="btn tap" title="Tap along to the beat to set the BPM" hidden>TAP</button>
+          </div>
+          <div class="tempo-row">Tempo <input type="range" class="tempo" min="-30" max="30" step="0.1" value="0" data-default="0"><span class="tv">0.0%</span></div>`;
+        d.canvas = $('canvas', d.root);
+        d.audio = new Audio();
+        d.audio.preservesPitch = true; d.audio.mozPreservesPitch = true; d.audio.webkitPreservesPitch = true;
+        ctx.createMediaElementSource(d.audio).connect(d.ch.input);
+        d.audio.addEventListener('ended', () => { if (d.type === 'file') { d.playing = false; renderDeck(d); } });
+
+        $('.play', d.root).addEventListener('click', () => d.playing ? pauseDeck(d) : playDeck(d));
+        $('.cue', d.root).addEventListener('click', () => cueDeck(d));
+        $('.sync', d.root).addEventListener('click', () => syncDeck(d));
+        $('.loop', d.root).addEventListener('click', () => toggleLoop(d));
+        $('.tap', d.root).addEventListener('click', () => tapDeck(d));
+        $$('.nudge', d.root).forEach(b => {
+          const on = e => { e.preventDefault(); setNudge(d, 0.04 * +b.dataset.dir); };
+          const off = () => setNudge(d, 0);
+          b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off);
+        });
+        const tempo = $('.tempo', d.root);
+        tempo.addEventListener('input', () => { d.synced = false; setTempo(d, +tempo.value); });
+        tempo.addEventListener('dblclick', () => { tempo.value = 0; setTempo(d, 0); });
+        d.canvas.addEventListener('click', e => {
+          if (d.type !== 'file' || !d.track) return;
+          const r = d.canvas.getBoundingClientRect();
+          d.audio.currentTime = clamp((e.clientX - r.left) / r.width, 0, 1) * d.track.duration;
+        });
+      });
+
+      function beatNow(d) {
+        if (d.type === 'groove') return d.playing ? d.anchorBeat + (ctx.currentTime - d.anchorTime) * effBpm(d) / 60 : d.pausedBeat;
+        if (d.type === 'file' && d.bpm) return (d.audio.currentTime - d.offset) * d.bpm / 60;
+        return 0;
+      }
+      function reanchor(d) {
+        if (d.type === 'groove' && d.playing) { d.anchorBeat = beatNow(d); d.anchorTime = ctx.currentTime; }
+      }
+      function setTempo(d, pct) {
+        reanchor(d);
+        d.tempo = clamp(pct, -30, 30);
+        $('.tempo', d.root).value = d.tempo;
+        if (d.type === 'file') d.audio.playbackRate = rateOf(d);
+        renderDeck(d); renderLibraryFlows();
+      }
+      function setNudge(d, n) {
+        if (!d.type || d.nudge === n) return;
+        reanchor(d); d.nudge = n;
+        if (d.type === 'file') d.audio.playbackRate = rateOf(d);
+      }
+      function stopDeck(d) {
+        if (d.playing) pauseDeck(d);
+        d.audio.pause();
+      }
+      function loadGroove(d, id) {
+        const g = beatById(id); if (!g) return;
+        stopDeck(d);
+        d.type = 'groove'; d.g = g; d.track = null; d.bpm = g.bpm; d.offset = 0; d.key = g.key; d.camelot = g.camelot;
+        d.pausedBeat = 0; d.loop = null; d.nudge = 0; d.synced = false;
+        setTempo(d, 0);
+        toast(`${g.name} loaded on Deck ${d.id}`);
+      }
+      function loadFile(d, id) {
+        const t = myTracks.find(x => x.id === id); if (!t) return;
+        stopDeck(d);
+        if (d.url) URL.revokeObjectURL(d.url);
+        d.url = URL.createObjectURL(t.blob);
+        d.audio.src = d.url;
+        d.type = 'file'; d.g = null; d.track = t; d.bpm = t.bpm || 0; d.offset = t.offset || 0; d.key = null; d.camelot = null;
+        d.cue = 0; d.loop = null; d.nudge = 0; d.synced = false;
+        setTempo(d, 0);
+        toast(`${t.title} loaded on Deck ${d.id}${t.bpm ? '' : ' (tap TAP to set its BPM)'}`);
+      }
+      async function playDeck(d) {
+        if (!d.type) { toast(`Load something on Deck ${d.id} first — pick from the library below.`); return; }
+        wake();
+        if (d.type === 'groove') {
+          const now = ctx.currentTime;
+          d.ch.gate.gain.cancelScheduledValues(now); d.ch.gate.gain.setValueAtTime(1, now);
+          d.anchorTime = now + 0.05; d.anchorBeat = d.pausedBeat;
+          d.nextStep = Math.ceil(d.pausedBeat * 4 - 1e-6);
+          d.playing = true;
+          const o = other(d);
+          if (d.synced && o.playing && o.bpm && Math.abs(d.pausedBeat % 4) < 1e-6) {
+            // Quantised start: drop in on the other deck's next bar ("the one")
+            const ob = beatNow(o) * effBpm(d) / effBpm(o);
+            const wait = (4 - (((ob % 4) + 4) % 4)) % 4;
+            d.anchorTime = ctx.currentTime + wait * 60 / effBpm(d);
+            if (wait > 0.5) toast(`Deck ${d.id} drops in on the next bar…`, 1500);
+          } else if (d.synced) alignPhase(d);
+          grooveTick(d);
+        } else {
+          d.audio.playbackRate = rateOf(d);
+          try { await d.audio.play(); } catch (e) { toast('Could not play that file.'); return; }
+          d.playing = true;
+          if (d.synced) alignPhase(d);
+        }
+        renderDeck(d);
+      }
+      function pauseDeck(d) {
+        if (d.type === 'groove') {
+          d.pausedBeat = beatNow(d); d.playing = false;
+          d.ch.gate.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
+        } else { d.audio.pause(); d.playing = false; }
+        renderDeck(d);
+      }
+      function cueDeck(d) {
+        if (!d.type) return;
+        if (d.type === 'groove') { if (d.playing) pauseDeck(d); d.pausedBeat = 0; renderDeck(d); return; }
+        if (d.playing) { pauseDeck(d); d.audio.currentTime = d.cue; }
+        else { d.cue = d.audio.currentTime; toast(`Cue point set at ${fmt(d.cue)}`); }
+      }
+      function toggleLoop(d) {
+        if (d.type !== 'file') return;
+        if (d.loop) { d.loop = null; }
+        else {
+          if (!d.bpm) { toast('Set the BPM first (TAP along to the beat).'); return; }
+          const period = 60 / d.bpm;
+          const start = d.offset + Math.round(beatNow(d)) * period;
+          d.loop = { start, end: start + 4 * period };
+        }
+        renderDeck(d);
+      }
+      function tapDeck(d) {
+        if (d.type !== 'file') return;
+        const now = performance.now();
+        if (d.taps.length && now - d.taps[d.taps.length - 1] > 2000) d.taps = [];
+        d.taps.push(now);
+        if (d.taps.length < 4) { toast(`Keep tapping on the beat… (${d.taps.length})`, 1200); return; }
+        const iv = (d.taps[d.taps.length - 1] - d.taps[0]) / (d.taps.length - 1) / 1000;
+        const bpm = Math.round(60 / iv / rateOf(d) * 10) / 10;
+        const period = 60 / bpm;
+        d.bpm = bpm; d.offset = ((d.audio.currentTime % period) + period) % period;
+        d.track.bpm = bpm; d.track.offset = d.offset; DB.put(d.track);
+        renderDeck(d); renderLibrary();
+        toast(`BPM set to ${bpm}`, 1200);
+      }
+      function syncDeck(d) {
+        const o = other(d);
+        if (!d.type || !o.type) { toast('Load something on both decks first.'); return; }
+        if (!d.bpm || !o.bpm) { toast('This song needs a BPM first. Tap TAP along to the beat.'); return; }
+        const target = effBpm(o);
+        const cand = [target, target / 2, target * 2].sort((x, y) => Math.abs(x / d.bpm - 1) - Math.abs(y / d.bpm - 1))[0];
+        const pct = (cand / d.bpm - 1) * 100;
+        if (Math.abs(pct) > 30) toast('Big tempo jump. Got as close as the tempo slider allows.');
+        setTempo(d, Math.round(pct * 10) / 10);
+        d.synced = true;   // stays locked: pressing play later also lands on the other deck's beat
+        alignPhase(d);
+        const b = $('.sync', d.root); b.classList.add('flash'); setTimeout(() => b.classList.remove('flash'), 400);
+      }
+
+      // Line this deck's beat (and bar, for beats) up with the other playing deck
+      function alignPhase(d) {
+        const o = other(d);
+        if (!d.playing || !o.playing || !d.bpm || !o.bpm) return;
+        const ratio = effBpm(d) / effBpm(o), desired = beatNow(o) * ratio, mine = beatNow(d);
+        if (d.type === 'groove') {
+          let diff = ((desired - mine) % 4 + 4) % 4; if (diff >= 2) diff -= 4;
+          d.anchorBeat = mine + diff; d.anchorTime = ctx.currentTime;
+          d.nextStep = Math.floor(d.anchorBeat * 4) + 1;
+        } else {
+          let diff = ((desired - mine) % 1 + 1) % 1; if (diff >= 0.5) diff -= 1;
+          d.audio.currentTime = Math.max(0, d.audio.currentTime + diff * 60 / d.bpm);
+        }
+      }
+
+      // Groove scheduler — runs on the audio clock, a little ahead of time
+      function grooveTick(d) {
+        if (!d.playing || d.type !== 'groove') return;
+        const now = ctx.currentTime, bpm = effBpm(d), sd = 60 / bpm / 4, g = d.g;
+        for (let guard = 0; guard < 64; guard++) {
+          const n = d.nextStep;
+          let t = d.anchorTime + (n / 4 - d.anchorBeat) * 60 / bpm;
+          if (n % 2 === 1) t += (g.swing || 0) * sd;
+          if (t > now + 0.12) break;
+          d.nextStep++;
+          if (t < now - 0.03) continue;
+          g.steps[((n % g.L) + g.L) % g.L].forEach(e => playEvent(d.ch.input, e, t, sd));
+        }
+      }
+      function playEvent(out, e, t, sd) {
+        if (e.kind === 'drum') playDrum(out, e.lane, t, e.vol);
+        else if (e.kind === 'bass') {
+          const dur = e.len * sd;
+          if (e.type === '808') play808(out, t, e.midi, dur);
+          else if (e.type === 'log') playLog(out, t, e.midi);
+          else if (e.type === 'synth') playSynthBass(out, t, e.midi, dur);
+          else playSub(out, t, e.midi, dur);
+        } else if (e.kind === 'chord') {
+          e.notes.forEach(m => makeVoice(e.inst, out, m, t, 0.5).release(t + Math.max(0.08, e.len * sd * 0.92)));
+        } else if (e.kind === 'lead') {
+          makeVoice(e.type, out, e.midi, t, 0.9).release(t + e.len * sd * 0.95);
+        }
+      }
+      setInterval(() => decks.forEach(grooveTick), 25);
+
+      const fmt = s => { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); };
+      function renderDeck(d) {
+        const r = d.root;
+        $('.play', r).innerHTML = d.playing ? '&#10074;&#10074;' : '&#9654;';
+        $('.loop', r).hidden = d.type !== 'file';
+        $('.tap', r).hidden = d.type !== 'file';
+        $('.loop', r).classList.toggle('on', !!d.loop);
+        $('.tv', r).textContent = (d.tempo > 0 ? '+' : '') + d.tempo.toFixed(1) + '%';
+        if (!d.type) return;
+        if (d.type === 'groove') {
+          $('.title', r).textContent = d.g.name;
+          $('.sub', r).textContent = `${GENRES[d.g.genre]} · ${d.g.vibe}`;
+        } else {
+          $('.title', r).textContent = d.track.title;
+          $('.sub', r).textContent = d.track.artist || d.track.fileName;
+        }
+        $('.bpm', r).textContent = d.bpm ? effBpm(d).toFixed(1) : '?';
+        $('.key', r).textContent = d.key ? `${d.key} · ${d.camelot}` : 'key —';
+      }
+
+      // =====================================================================
+      // MIXER UI
+      // =====================================================================
+      $('#mixCols').innerHTML = decks.map(d => `
+        <div class="mix-ch" data-ch="${d.id}">
+          <div class="ch-label">${d.id}</div>
+          <label>HI<input type="range" data-p="hi" min="-1" max="1" step="0.01" value="0" data-default="0"></label>
+          <label>MID<input type="range" data-p="mid" min="-1" max="1" step="0.01" value="0" data-default="0"></label>
+          <label>LOW<input type="range" data-p="lo" min="-1" max="1" step="0.01" value="0" data-default="0"></label>
+          <label class="knob-filter">FILTER<input type="range" data-p="filter" min="-1" max="1" step="0.01" value="0" data-default="0"></label>
+          <button class="btn echo" title="Echo: turn on, then pull the fader down for an echo-out">ECHO</button>
+          <div class="fader-wrap"><input type="range" class="vfader" data-p="vol" min="0" max="1" step="0.01" value="0.85" data-default="0.85"><div class="vu"><i></i></div></div>
+        </div>`).join('');
+      $$('.mix-ch').forEach(el => {
+        const d = decks.find(x => x.id === el.dataset.ch), c = d.ch;
+        $$('input', el).forEach(inp => {
+          const apply = () => {
+            const v = +inp.value, t = ctx.currentTime;
+            if (inp.dataset.p === 'vol') c.fader.gain.setTargetAtTime(v * v * 1.2, t, 0.01);
+            else if (inp.dataset.p === 'filter') setFilter(c, v);
+            else c[inp.dataset.p].gain.setTargetAtTime(eqDb(v), t, 0.01);
+          };
+          inp.addEventListener('input', apply);
+          inp.addEventListener('dblclick', () => { inp.value = inp.dataset.default; apply(); });
+          apply();
+        });
+        $('.echo', el).addEventListener('click', e => {
+          const on = e.currentTarget.classList.toggle('on');
+          c.delay.delayTime.setValueAtTime(d.bpm ? Math.min(1.9, 0.75 * 60 / effBpm(d)) : 0.4, ctx.currentTime);
+          c.echoSend.gain.setTargetAtTime(on ? 0.6 : 0, ctx.currentTime, 0.02);
+        });
+      });
+      function applyXfade() {
+        const x = +$('#xf').value, t = ctx.currentTime;
+        deckA.ch.xf.gain.setTargetAtTime(Math.cos(x * Math.PI / 2), t, 0.01);
+        deckB.ch.xf.gain.setTargetAtTime(Math.sin(x * Math.PI / 2), t, 0.01);
+      }
+      $('#xf').addEventListener('input', applyXfade);
+      $('#xf').addEventListener('dblclick', () => { $('#xf').value = 0.5; applyXfade(); });
+      applyXfade();
+      $('#masterVol').addEventListener('input', e => master.gain.setTargetAtTime(+e.target.value, ctx.currentTime, 0.01));
+
+      // =====================================================================
+      // PIANO (independent channel)
+      // =====================================================================
+      const pianoBus = ctx.createGain(); pianoBus.gain.value = 0.8; pianoBus.connect(master);
+      let pianoBase = 48, sustain = false;
+      const held = new Map(), sustained = new Map();
+      const LOWER = { KeyZ: 0, KeyS: 1, KeyX: 2, KeyD: 3, KeyC: 4, KeyV: 5, KeyG: 6, KeyB: 7, KeyH: 8, KeyN: 9, KeyJ: 10, KeyM: 11, Comma: 12, KeyL: 13, Period: 14, Semicolon: 15, Slash: 16 };
+      const UPPER = { KeyQ: 12, Digit2: 13, KeyW: 14, Digit3: 15, KeyE: 16, KeyR: 17, Digit5: 18, KeyT: 19, Digit6: 20, KeyY: 21, Digit7: 22, KeyU: 23, KeyI: 24, Digit9: 25, KeyO: 26, Digit0: 27, KeyP: 28 };
+      const CODE_OFF = { ...LOWER, ...UPPER };
+      const codeLabel = c => ({ Comma: ',', Period: '.', Semicolon: ';', Slash: '/' }[c] || c.replace(/^(Key|Digit)/, ''));
+      const LABELS = {};
+      Object.entries(LOWER).forEach(([c, o]) => { if (o < 12) LABELS[o] = codeLabel(c); });
+      Object.entries(UPPER).forEach(([c, o]) => { LABELS[o] = codeLabel(c); });
+      const isBlack = m => [1, 3, 6, 8, 10].includes(m % 12);
+
+      function renderPianoKeys() {
+        const box = $('#pianoKeys'); box.innerHTML = '';
+        const whites = []; for (let m = pianoBase; m <= pianoBase + 28; m++) if (!isBlack(m)) whites.push(m);
+        const w = 100 / whites.length;
+        for (let m = pianoBase; m <= pianoBase + 28; m++) {
+          const el = document.createElement('div');
+          el.dataset.midi = m;
+          if (isBlack(m)) {
+            el.className = 'pk black';
+            el.style.left = `${(whites.indexOf(m - 1) + 1) * w - w * 0.32}%`; el.style.width = `${w * 0.64}%`;
+          } else {
+            el.className = 'pk white';
+            el.style.left = `${whites.indexOf(m) * w}%`; el.style.width = `${w}%`;
+            if (m % 12 === 0) el.innerHTML = `<span class="nn">C${m / 12 - 1}</span>`;
+          }
+          const lb = LABELS[m - pianoBase];
+          if (lb) el.insertAdjacentHTML('beforeend', `<span class="lbl">${esc(lb)}</span>`);
+          box.appendChild(el);
+        }
+        $('#octLabel').textContent = 'C' + (pianoBase / 12 - 1);
+        lastScaleSig = '';
+      }
+      function noteOn(m) {
+        wake();
+        const t = ctx.currentTime;
+        if (held.has(m)) held.get(m).release(t);
+        if (sustained.has(m)) { sustained.get(m).release(t); sustained.delete(m); }
+        held.set(m, makeVoice($('#pianoSound').value, pianoBus, m, t, 1));
+        const el = $(`.pk[data-midi="${m}"]`); if (el) el.classList.add('down');
+      }
+      function noteOff(m) {
+        const v = held.get(m); if (!v) return;
+        held.delete(m);
+        if (sustain) sustained.set(m, v); else v.release(ctx.currentTime);
+        const el = $(`.pk[data-midi="${m}"]`); if (el) el.classList.remove('down');
+      }
+      function setSustain(on) {
+        sustain = on;
+        $('#btnSustain').classList.toggle('on', on);
+        if (!on) { sustained.forEach(v => v.release(ctx.currentTime)); sustained.clear(); }
+      }
+      const pointerNotes = new Map();
+      $('#pianoKeys').addEventListener('pointerdown', e => {
+        const k = e.target.closest('.pk'); if (!k) return;
+        e.preventDefault();
+        const m = +k.dataset.midi; pointerNotes.set(e.pointerId, m); noteOn(m);
+      });
+      window.addEventListener('pointerup', e => { if (pointerNotes.has(e.pointerId)) { noteOff(pointerNotes.get(e.pointerId)); pointerNotes.delete(e.pointerId); } });
+      window.addEventListener('pointercancel', e => { if (pointerNotes.has(e.pointerId)) { noteOff(pointerNotes.get(e.pointerId)); pointerNotes.delete(e.pointerId); } });
+      const typing = el => el && (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type !== 'range'));
+      const codeNote = new Map();
+      window.addEventListener('keydown', e => {
+        if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key === 'Shift') { if (!e.repeat) setSustain(true); return; }
+        if (!(e.code in CODE_OFF)) return;
+        e.preventDefault();
+        if (e.repeat || codeNote.has(e.code)) return;
+        const m = pianoBase + CODE_OFF[e.code]; codeNote.set(e.code, m); noteOn(m);
+      });
+      window.addEventListener('keyup', e => {
+        if (e.key === 'Shift') { setSustain(false); return; }
+        if (codeNote.has(e.code)) { noteOff(codeNote.get(e.code)); codeNote.delete(e.code); }
+      });
+      window.addEventListener('blur', () => { codeNote.forEach(m => noteOff(m)); codeNote.clear(); setSustain(false); });
+      $('#octDown').addEventListener('click', () => { pianoBase = Math.max(24, pianoBase - 12); renderPianoKeys(); });
+      $('#octUp').addEventListener('click', () => { pianoBase = Math.min(84, pianoBase + 12); renderPianoKeys(); });
+      $('#btnSustain').addEventListener('click', () => setSustain(!sustain));
+      $('#pianoVol').addEventListener('input', e => pianoBus.gain.setTargetAtTime(+e.target.value, ctx.currentTime, 0.01));
+      $('#pianoSound').addEventListener('change', e => e.target.blur());
+
+      // Light up the keys that fit whatever deck you're hearing most
+      const SCALE_MINOR = [0, 2, 3, 5, 7, 8, 10], SCALE_MAJOR = [0, 2, 4, 5, 7, 9, 11];
+      let lastScaleSig = '';
+      function updateScaleGuide() {
+        const x = +$('#xf').value;
+        const weight = d => d.playing ? (d === deckA ? Math.cos(x * Math.PI / 2) : Math.sin(x * Math.PI / 2)) * d.ch.fader.gain.value : -1;
+        const d = [deckA, deckB].filter(dd => dd.playing && dd.type === 'groove').sort((p, q) => weight(q) - weight(p))[0];
+        let sig = 'none', scale = [], chord = [], html = 'Play a beat and the keys that fit it light up. Songs you add don’t show their key.';
+        if (d) {
+          const km = /^([A-G]#?)(m?)$/.exec(d.key), root = NOTE_NAMES.indexOf(km[1]);
+          scale = (km[2] ? SCALE_MINOR : SCALE_MAJOR).map(i => (root + i) % 12);
+          const bar = Math.floor(Math.max(0, beatNow(d)) / 4) % 4, ch = d.g.chordsByBar[bar];
+          chord = ch.pcs;
+          sig = d.id + d.key + ch.name;
+          html = `Deck ${d.id} is in <b>${d.key}</b> &middot; now on chord <b>${ch.name}</b>. Gold keys = chord notes, light keys = in key.`;
+        }
+        if (sig === lastScaleSig) return;
+        lastScaleSig = sig;
+        $('#scaleGuide').innerHTML = html;
+        $$('.pk').forEach(el => {
+          const pc = +el.dataset.midi % 12;
+          el.classList.toggle('chord', chord.includes(pc));
+          el.classList.toggle('in-scale', !chord.includes(pc) && scale.includes(pc));
+        });
+      }
+
+      // =====================================================================
+      // FX PADS
+      // =====================================================================
+      const fxBus = ctx.createGain(); fxBus.gain.value = 0.7; fxBus.connect(master);
+      const PADS = [
+        ['📯', 'Airhorn', t => {
+          [[0, 0.14], [0.18, 0.14], [0.36, 0.6]].forEach(([dt, len]) => {
+            const g = ctx.createGain(), s = t + dt;
+            g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.22, s + 0.02);
+            g.gain.setValueAtTime(0.22, s + len); g.gain.exponentialRampToValueAtTime(0.0008, s + len + 0.08);
+            const bp = filtered('bandpass', 1400, 0.6, g); g.connect(fxBus);
+            [370, 373, 466].forEach(f => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 1.03, s); o.frequency.linearRampToValueAtTime(f, s + 0.05); o.connect(bp); o.start(s); o.stop(s + len + 0.1); });
+          });
+        }],
+        ['🚨', 'Siren', t => {
+          const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 850;
+          const l = ctx.createOscillator(); l.frequency.value = 2.2; const lg = ctx.createGain(); lg.gain.value = 320; l.connect(lg); lg.connect(o.frequency);
+          const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09, t + 0.05); g.gain.setValueAtTime(0.09, t + 1.8); g.gain.exponentialRampToValueAtTime(0.0008, t + 2.1);
+          o.connect(filtered('lowpass', 2500, 0.7, g)); g.connect(fxBus);
+          o.start(t); l.start(t); o.stop(t + 2.15); l.stop(t + 2.15);
+        }],
+        ['💥', 'Boom', t => {
+          const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(32, t + 1.2);
+          const ws = ctx.createWaveShaper(); ws.curve = satCurve; o.connect(ws); ws.connect(env(fxBus, t, 0.9, 1.5, 0.005)); o.start(t); o.stop(t + 1.6);
+          noiseSrc(t, 0.4).connect(filtered('lowpass', 900, 0.7, env(fxBus, t, 0.5, 0.35)));
+        }],
+        ['⚡', 'Laser', t => {
+          [0, 0.12, 0.24].forEach(dt => {
+            const o = ctx.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(2200, t + dt); o.frequency.exponentialRampToValueAtTime(140, t + dt + 0.3);
+            o.connect(filtered('lowpass', 3000, 1, env(fxBus, t + dt, 0.08, 0.3))); o.start(t + dt); o.stop(t + dt + 0.32);
+          });
+        }],
+        ['⏪', 'Rewind', t => {
+          const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(700, t); o.frequency.exponentialRampToValueAtTime(50, t + 0.8);
+          const bp = filtered('bandpass', 1200, 0.8, env(fxBus, t, 0.2, 0.85, 0.01));
+          o.connect(bp); o.start(t); o.stop(t + 0.9);
+          const n = noiseSrc(t, 0.9), f = filtered('bandpass', 3000, 2, env(fxBus, t, 0.12, 0.85, 0.01));
+          f.frequency.setValueAtTime(4000, t); f.frequency.exponentialRampToValueAtTime(300, t + 0.8); n.connect(f);
+        }],
+        ['👏', 'Clap Roll', t => {
+          let at = 0, gap = 0.16;
+          for (let i = 0; i < 12; i++) { playDrum(fxBus, 'c', t + at, 0.5 + i * 0.05); at += gap; gap = Math.max(0.035, gap * 0.82); }
+        }]
+      ];
+      $('#pads').innerHTML = PADS.map(([ic, name], i) => `<button class="pad" data-i="${i}"><span>${ic}</span>${name}</button>`).join('');
+      $('#pads').addEventListener('click', e => {
+        const b = e.target.closest('.pad'); if (!b) return;
+        wake(); PADS[+b.dataset.i][2](ctx.currentTime + 0.01);
+      });
+
+      // =====================================================================
+      // LIBRARY UI
+      // =====================================================================
+      let libTab = 'beats', libGenre = 'all';
+      function flowBadges(bpm, cam) {
+        return decks.filter(d => d.type && d.bpm).map(d => {
+          const tOk = tempoCompat(bpm, effBpm(d)), kOk = keyCompat(cam, d.camelot);
+          if (tOk && kOk) return `<span class="flow perfect" title="Same tempo and a matching key">✓ Flows with ${d.id}</span>`;
+          if (tOk) return `<span class="flow tempo" title="Tempo matches${cam && d.camelot ? ', key may clash' : ''}">≈ Tempo ${d.id}</span>`;
+          if (kOk) return `<span class="flow key" title="Key matches, but the tempo is far apart">♪ Key ${d.id}</span>`;
+          return '';
+        }).join('');
+      }
+      function renderLibraryFlows() { if (libTab !== 'crates') renderLibrary(); }
+      function renderLibrary() {
+        $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === libTab));
+        $('#chips').innerHTML = ['all', ...Object.keys(GENRES)].map(g =>
+          `<button class="chip${g === libGenre ? ' on' : ''}" data-g="${g}">${g === 'all' ? 'All' : GENRES[g]}</button>`).join('');
+        $('#chips').hidden = libTab === 'music';
+        const body = $('#libBody');
+        if (libTab === 'beats') {
+          $('#libHint').textContent = 'Original beats, ready to play. Load one on A or B.';
+          body.innerHTML = `<div class="lib-list">${BEATS.filter(b => libGenre === 'all' || b.genre === libGenre).map(b => `
+            <div class="item">
+              <div><span class="gbadge ${b.genre}">${GENRES[b.genre]}</span></div>
+              <div class="t">${esc(b.name)}</div>
+              <div class="m">${esc(b.vibe)}</div>
+              <div class="m"><b>${b.bpm}</b> BPM · ${b.key} (${b.camelot})</div>
+              <div class="acts"><button class="ld a" data-load="A" data-beat="${b.id}">A</button><button class="ld b" data-load="B" data-beat="${b.id}">B</button>${flowBadges(b.bpm, b.camelot)}</div>
+            </div>`).join('')}</div>`;
+        } else if (libTab === 'music') {
+          $('#libHint').textContent = 'Your own songs. They stay saved in this browser.';
+          body.innerHTML = `<div class="drop" id="drop">Drop MP3 / WAV files here, or <button class="btn" id="btnAdd">+ Add songs</button><br><span class="hint">Tempo is measured automatically. Pro tip: name files "Artist - Title".</span></div>
+            ${myTracks.length ? `<div class="lib-list">${myTracks.map(t => `
+              <div class="item">
+                <div style="display:flex;gap:6px;align-items:center">${t.crate ? `<span class="have">✓ Starter crate</span>` : ''}<button class="del" data-del="${t.id}" title="Remove from library">✕</button></div>
+                <div class="t">${esc(t.title)}</div>
+                <div class="m">${esc(t.artist || t.fileName)} · ${fmt(t.duration)}</div>
+                <div class="m"><input type="number" class="bpm-in" data-bpm="${t.id}" min="50" max="200" step="0.1" value="${t.bpm || ''}" placeholder="?"> BPM</div>
+                <div class="acts"><button class="ld a" data-load="A" data-track="${t.id}">A</button><button class="ld b" data-load="B" data-track="${t.id}">B</button>${t.bpm ? flowBadges(t.bpm, null) : ''}</div>
+              </div>`).join('')}</div>` : '<p class="hint">No songs yet. Check the Starter Crates tab for tracks to get.</p>'}`;
+          const drop = $('#drop');
+          ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+          ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove('over')));
+          drop.addEventListener('drop', e => { e.preventDefault(); addFiles(e.dataTransfer.files); });
+        } else {
+          $('#libHint').textContent = 'Popular tracks to start with. Get them from your music store, then add them under My Music.';
+          body.innerHTML = CRATES.filter(c => libGenre === 'all' || c.genre === libGenre).map(c => `
+            <div class="crate">
+              <div class="ch"><span class="gbadge ${c.genre}">${GENRES[c.genre]}</span><b>${esc(c.name)}</b></div>
+              <div class="hint" style="margin-top:4px">💡 ${esc(c.tip)}</div>
+              <ol>${c.tracks.map(([title, artist, bpm]) => {
+            const mine = myTracks.find(t => t.crate === c.id && t.title === title);
+            return `<li><b>${esc(title)}</b> — ${esc(artist)} <span class="hint">${mine && mine.bpm ? mine.bpm + ' BPM' : bpm ? '~' + bpm + ' BPM' : ''}</span>
+                  <span class="r">${mine ? `<span class="have">✓ in library</span><button class="ld a" data-load="A" data-track="${mine.id}">A</button><button class="ld b" data-load="B" data-track="${mine.id}">B</button>`
+                : `<button class="btn" data-addfile="1" style="padding:2px 8px;font-size:11px">+ Add file</button>`}</span></li>`;
+          }).join('')}</ol>
+            </div>`).join('');
+        }
+      }
+      $('.tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { libTab = b.dataset.tab; renderLibrary(); } });
+      $('#chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { libGenre = b.dataset.g; renderLibrary(); } });
+      $('#libBody').addEventListener('click', e => {
+        const ld = e.target.closest('[data-load]');
+        if (ld) {
+          const d = decks.find(x => x.id === ld.dataset.load);
+          if (ld.dataset.beat) loadGroove(d, ld.dataset.beat); else loadFile(d, ld.dataset.track);
+          renderLibrary(); return;
+        }
+        if (e.target.closest('#btnAdd, [data-addfile]')) { $('#fileIn').click(); return; }
+        const del = e.target.closest('[data-del]');
+        if (del) {
+          const t = myTracks.find(x => x.id === del.dataset.del);
+          if (t && confirm(`Remove "${t.title}" from your DJ library? (The original file on your computer is not touched.)`)) {
+            if (decks.some(d => d.track === t)) { toast('Unload it from the deck first.'); return; }
+            myTracks = myTracks.filter(x => x !== t); DB.del(t.id); renderLibrary();
+          }
+        }
+      });
+      $('#libBody').addEventListener('change', e => {
+        const inp = e.target.closest('[data-bpm]'); if (!inp) return;
+        const t = myTracks.find(x => x.id === inp.dataset.bpm), v = parseFloat(inp.value);
+        if (!t || !(v >= 50 && v <= 200)) return;
+        t.bpm = v; DB.put(t);
+        decks.forEach(d => { if (d.track === t) { d.bpm = v; renderDeck(d); } });
+      });
+      $('#fileIn').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+
+      // =====================================================================
+      // DRAWING (waveforms, beat lights, meters)
+      // =====================================================================
+      function drawDeck(d) {
+        const c = d.canvas, dpr = window.devicePixelRatio || 1;
+        const W = Math.round(c.clientWidth * dpr), H = Math.round(c.clientHeight * dpr);
+        if (!W) return;
+        if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+        const g = c.getContext('2d'), col = d.id === 'A' ? '#22d3ee' : '#f472b6';
+        g.clearRect(0, 0, W, H);
+        const r = d.root;
+        if (!d.type) {
+          g.fillStyle = '#4b5063'; g.font = `${13 * dpr}px system-ui`; g.textAlign = 'center';
+          g.fillText('Load a beat or song ↓', W / 2, H / 2 + 4 * dpr);
+          return;
+        }
+        if (d.type === 'file') {
+          const t = d.track, pos = d.audio.currentTime / (t.duration || 1);
+          if (d.loop && d.audio.currentTime >= d.loop.end) d.audio.currentTime = d.loop.start + (d.audio.currentTime - d.loop.end);
+          const n = t.peaks.length;
+          for (let x = 0; x < W; x += 2 * dpr) {
+            const p = t.peaks[Math.floor(x / W * n)] || 0, h = Math.max(1, p * H * 0.9);
+            g.fillStyle = x / W < pos ? col : '#3a3f50';
+            g.fillRect(x, (H - h) / 2, 1.4 * dpr, h);
+          }
+          if (d.loop) { g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(d.loop.start / t.duration * W, 0, (d.loop.end - d.loop.start) / t.duration * W, H); }
+          g.fillStyle = '#facc15'; g.fillRect(d.cue / t.duration * W, 0, 2 * dpr, H);
+          g.fillStyle = '#fff'; g.fillRect(pos * W - dpr, 0, 2 * dpr, H);
+          $('.time', r).textContent = `${fmt(d.audio.currentTime)} / -${fmt(t.duration - d.audio.currentTime)}`;
+        } else {
+          const G = d.g, L = G.L, sw = W / L, beat = beatNow(d), cur = Math.floor(Math.max(0, beat) * 4) % L;
+          for (let i = 0; i < L; i++) {
+            const evs = G.steps[i];
+            const has = l => evs.some(e => e.kind === 'drum' && e.lane === l);
+            const bass = evs.some(e => e.kind === 'bass'), chord = evs.some(e => e.kind === 'chord');
+            const x = i * sw, on = i === cur && d.playing;
+            g.globalAlpha = on ? 1 : (Math.floor(i / 16) % 2 ? 0.55 : 0.75);
+            if (has('k')) { g.fillStyle = col; g.fillRect(x + 1, H * 0.12, sw - 2, H * 0.76); }
+            else if (has('s') || has('c')) { g.fillStyle = '#e8e9ee'; g.fillRect(x + 1, H * 0.25, sw - 2, H * 0.5); }
+            else if (bass) { g.fillStyle = col; g.fillRect(x + 1, H * 0.38, sw - 2, H * 0.24); }
+            else { g.fillStyle = '#3a3f50'; g.fillRect(x + 1, H * 0.45, sw - 2, H * 0.1); }
+            if (chord) { g.fillStyle = '#f0a84e'; g.fillRect(x + 1, H * 0.04, sw - 2, H * 0.05); }
+          }
+          g.globalAlpha = 1;
+          g.fillStyle = '#fff'; g.fillRect(((Math.max(0, beat) * 4) % L) * sw - dpr, 0, 2 * dpr, H);
+          const bar = Math.floor(Math.max(0, beat) / 4);
+          $('.time', r).textContent = `Bar ${bar + 1} · ${d.g.chordsByBar[bar % 4].name}`;
+        }
+        const leds = $$('.leds i', r), b = Math.floor(beatNow(d));
+        leds.forEach((el, i) => el.classList.toggle('on', d.playing && d.bpm > 0 && ((b % 4) + 4) % 4 === i));
+      }
+      function drawVU() {
+        decks.forEach(d => {
+          d.ch.an.getFloatTimeDomainData(d.ch.vuBuf);
+          let s = 0; for (let i = 0; i < d.ch.vuBuf.length; i++) s += d.ch.vuBuf[i] * d.ch.vuBuf[i];
+          const lvl = Math.min(1, Math.sqrt(s / d.ch.vuBuf.length) * 3.2);
+          $(`.mix-ch[data-ch="${d.id}"] .vu i`).style.height = (lvl * 100) + '%';
+        });
+      }
+      (function frame() {
+        decks.forEach(drawDeck); drawVU(); updateScaleGuide();
+        requestAnimationFrame(frame);
+      })();
+
+      // =====================================================================
+      // RECORDING
+      // =====================================================================
+      let recorder = null, chunks = [];
+      $('#btnRec').addEventListener('click', () => {
+        if (!recDest || !window.MediaRecorder) { toast('Recording is not supported in this browser.'); return; }
+        wake();
+        if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+        const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+        chunks = [];
+        recorder = new MediaRecorder(recDest.stream, mime ? { mimeType: mime } : undefined);
+        recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+          const link = $('#recLink');
+          if (link.href) URL.revokeObjectURL(link.href);
+          link.href = URL.createObjectURL(blob);
+          link.download = 'my-dj-mix.' + (blob.type.includes('mp4') ? 'm4a' : 'webm');
+          link.hidden = false;
+          $('#btnRec').classList.remove('on'); $('#btnRec').innerHTML = '&#9210; Record';
+          toast('Mix recorded. Hit "Download mix" to save it.');
+        };
+        recorder.start(1000);
+        $('#btnRec').classList.add('on'); $('#btnRec').innerHTML = '&#9632; Stop';
+        $('#recLink').hidden = true;
+        toast('Recording everything you hear…');
+      });
+
+      // =====================================================================
+      // QUICK START + GUIDE
+      // =====================================================================
+      $('#btnQuick').addEventListener('click', () => {
+        loadGroove(deckA, 'logdrum'); loadGroove(deckB, 'privateschool');
+        $('#xf').value = 0; applyXfade();
+        libTab = 'beats'; renderLibrary();
+        playDeck(deckA);
+        toast('Deck A is playing. Press SYNC then ▶ on Deck B, and slide the crossfader over.', 5000);
+      });
+
+      const GUIDE = [
+        { sel: null, title: 'Welcome to DJ Studio 🎧', text: 'On the left is your piano. It plays on top of everything. On the right are two decks and a mixer for beats and songs. This short tour gets you mixing.' },
+        { sel: '#library', title: '1 · Pick a beat', text: 'These are built-in beats: US hip hop, SA hip hop and amapiano. Tap A on "Log Drum Sunday" to load it on Deck A. Or just hit ⚡ Quick Start at the top.' },
+        { sel: '#deckA .deck-controls', title: '2 · Press play', text: 'Hit ▶ and Deck A starts. The 4 lights count the beats in each bar, which helps you line things up.' },
+        { sel: '#library', title: '3 · Find a beat that flows', text: 'Beats marked "✓ Flows with A" share A’s tempo and a matching key, so they won’t clash. Load one on Deck B.' },
+        { sel: '#deckB .deck-controls', title: '4 · Sync, then play', text: 'SYNC makes Deck B match Deck A’s tempo and lines up the beat. Then press ▶ on Deck B. Use ◀◀ ▶▶ to nudge it if it drifts.' },
+        { sel: '#mixer', title: '5 · Mix it', text: 'Slide the crossfader from A to B. Pro move: turn A’s LOW down as B comes in so the basslines don’t fight. FILTER sweeps sound great in transitions. Double-click any slider to reset it.' },
+        { sel: '#pianoPanel', title: '6 · Play over the mix', text: 'While a beat plays, gold keys are the current chord and light keys are in its key, so anything lit sounds good. Use Z S X D C… and Q 2 W 3 E… on your keyboard, or tap the keys.' },
+        { sel: '#pads', title: '7 · Hype it up', text: 'FX pads: airhorn, siren, boom, laser, rewind and clap roll. Use them on the drop.' },
+        { sel: '.tabs', title: '8 · Add your own songs', text: 'Under My Music, drop in MP3s you own. They stay saved in this browser and their tempo is measured automatically. Starter Crates list popular US hip hop, SA hip hop and amapiano tracks to collect.' },
+        { sel: '#btnRec', title: '9 · Record your set', text: 'Hit Record, mix, then Stop and download your mix. That’s it. Have fun! 🔥' }
+      ];
+      let gi = -1, spot = null, card = null;
+      function closeGuide() { gi = -1; spot && spot.remove(); card && card.remove(); spot = card = null; store.set('dj-guide-seen', '1'); window.removeEventListener('resize', placeGuide); }
+      function placeGuide() {
+        if (gi < 0) return;
+        const s = GUIDE[gi], el = s.sel && $(s.sel);
+        const cw = Math.min(360, window.innerWidth - 32);
+        if (el) {
+          const r = el.getBoundingClientRect();
+          Object.assign(spot.style, { display: 'block', left: r.left - 6 + 'px', top: r.top - 6 + 'px', width: r.width + 12 + 'px', height: r.height + 12 + 'px' });
+          const below = r.bottom + 16 + 200 < window.innerHeight;
+          card.style.left = clamp(r.left, 16, window.innerWidth - cw - 16) + 'px';
+          card.style.top = (below ? r.bottom + 16 : Math.max(16, r.top - card.offsetHeight - 16)) + 'px';
+        } else {
+          Object.assign(spot.style, { display: 'block', left: '50%', top: '40%', width: '0px', height: '0px' });
+          card.style.left = (window.innerWidth - cw) / 2 + 'px';
+          card.style.top = Math.max(16, window.innerHeight * 0.3) + 'px';
+        }
+      }
+      function showGuide(i) {
+        gi = i;
+        if (!spot) {
+          spot = document.createElement('div'); spot.className = 'guide-spot'; document.body.appendChild(spot);
+          card = document.createElement('div'); card.className = 'guide-card'; document.body.appendChild(card);
+          window.addEventListener('resize', placeGuide);
+        }
+        const s = GUIDE[i];
+        card.innerHTML = `<h4>${esc(s.title)}</h4><p>${esc(s.text)}</p>
+          <div class="gbtns"><span>${i + 1} / ${GUIDE.length}</span>
+          <button class="btn" data-g="skip">${i === GUIDE.length - 1 ? 'Close' : 'Skip'}</button>
+          ${i > 0 ? '<button class="btn" data-g="back">Back</button>' : ''}
+          ${i < GUIDE.length - 1 ? '<button class="btn primary" data-g="next">Next</button>' : '<button class="btn primary" data-g="skip">Let’s go</button>'}</div>`;
+        card.onclick = e => {
+          const b = e.target.closest('[data-g]'); if (!b) return;
+          if (b.dataset.g === 'next') showGuide(gi + 1); else if (b.dataset.g === 'back') showGuide(gi - 1); else closeGuide();
+        };
+        const el = s.sel && $(s.sel);
+        if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+        requestAnimationFrame(placeGuide);
+      }
+      window.addEventListener('scroll', placeGuide, { passive: true });
+      $('#btnGuide').addEventListener('click', () => showGuide(0));
+
+      // =====================================================================
+      // BOOT
+      // =====================================================================
+      renderPianoKeys();
+      decks.forEach(renderDeck);
+      renderLibrary();
+      DB.open().then(() => DB.all()).then(list => { myTracks = list; renderLibrary(); });
+      if (!store.get('dj-guide-seen')) setTimeout(() => showGuide(0), 400);
+    })();
+  </script>
+</body>
+</html>

@@ -1211,6 +1211,11 @@
       <div id="importMsg" class="lib-msg"></div>
     </div>
 
+    <a class="card" id="btnDJ" href="dj.html" style="text-decoration:none; color:inherit; display:block;">
+      <h3>&#127911; DJ Studio</h3>
+      <span>Two decks &bull; Beats &bull; Mixer &bull; Your piano on the side</span>
+    </a>
+
     <div class="card" id="btnFreePlay">
       <h3>Normal Piano (Full 88-Key Studio)</h3>
       <span>88 Keys &bull; Octave Shifting (Z/X) &bull; Free Play</span>
@@ -1300,6 +1305,9 @@
             <span>Tempo:</span>
             <input type="range" id="tempo" min="40" max="140" value="87">
             <span id="tempo-val" style="width: 48px;">87 BPM</span>
+          </div>
+          <div class="controls-row" id="beat-row" style="display: none;">
+            <button class="nav-btn" id="btnBeat" title="Backing drum beat">🥁 Beat: Off</button>
           </div>
         </div>
 
@@ -1452,6 +1460,67 @@
           v.choke.gain.setTargetAtTime(0, t, fade);
           v.oscs.forEach(o => o.stop(t + fade * 8));
         } catch (e) { }
+      }
+
+      // --- Drum machine (synthesised, no samples) ---
+      // k = 808-style kick, s = snare/clap, h = closed hi-hat, o = open hi-hat
+      let noiseBuf = null;
+      function getNoise() {
+        if (!noiseBuf) {
+          noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+          const d = noiseBuf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        }
+        return noiseBuf;
+      }
+      function playDrum(type, when, vol = 1) {
+        const out = getMaster();
+        const g = ctx.createGain();
+        g.connect(out);
+        if (type === 'k') {
+          const o = ctx.createOscillator();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(140, when);
+          o.frequency.exponentialRampToValueAtTime(42, when + 0.14);
+          g.gain.setValueAtTime(0.0001, when);
+          g.gain.linearRampToValueAtTime(0.6 * vol, when + 0.004);
+          g.gain.exponentialRampToValueAtTime(0.001, when + 0.55);
+          o.connect(g); o.start(when); o.stop(when + 0.6);
+          return;
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = getNoise();
+        const f = ctx.createBiquadFilter();
+        if (type === 's') {
+          f.type = 'bandpass'; f.frequency.value = 1700; f.Q.value = 0.6;
+          g.gain.setValueAtTime(0.32 * vol, when);
+          g.gain.exponentialRampToValueAtTime(0.001, when + 0.22);
+          const o = ctx.createOscillator(), og = ctx.createGain();
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(210, when);
+          o.frequency.exponentialRampToValueAtTime(150, when + 0.08);
+          og.gain.setValueAtTime(0.22 * vol, when);
+          og.gain.exponentialRampToValueAtTime(0.001, when + 0.1);
+          o.connect(og); og.connect(out); o.start(when); o.stop(when + 0.12);
+        } else {
+          f.type = 'highpass'; f.frequency.value = 7000;
+          g.gain.setValueAtTime(0.12 * vol, when);
+          g.gain.exponentialRampToValueAtTime(0.001, when + (type === 'o' ? 0.28 : 0.05));
+        }
+        src.connect(f); f.connect(g);
+        src.start(when, Math.random() * 0.5); src.stop(when + 0.32);
+      }
+      // A beat is one 4/4 bar of 16th-note lanes: 'X' accent, 'x' hit, 'g' ghost, 'o' open hat, '.' rest
+      function beatBarEvents(beat) {
+        const ev = [];
+        Object.entries(beat).forEach(([lane, pat]) => {
+          [...pat].forEach((c, i) => {
+            if (c === '.') return;
+            const type = lane === 'h' && c === 'o' ? 'o' : lane;
+            ev.push({ step: i, type, vol: c === 'X' ? 1.25 : c === 'g' ? 0.45 : 1 });
+          });
+        });
+        return ev;
       }
 
       function playNoteEngine(freq, midi = null, duration = 2.5) {
@@ -2145,6 +2214,9 @@
         'G4:.75 G4:.25 G5 E5 C5 B4 A4:2',
         'F5:.75 F5:.25 E5 C5 D5 C5:3'
       ];
+      // The 2-bar Still D.R.E. riff (steady 8th-note stabs):
+      //   bar 1: Am (C E A) x8 over A   ·   bar 2: B E A x3, then Em (B E G) x5 over E
+      const DRE_LOOP = 'A3+C5+E5+A5 '.repeat(8) + 'E3+B4+E5+A5 '.repeat(3) + 'E3+B4+E5+G5 '.repeat(4) + 'E3+B4+E5+G5';
       const LIBRARY_DEFS = [
         {
           id: 'happybirthday', title: 'Happy Birthday + Mini Emnandi Kuwe', artist: 'Traditional', bpm: 100,
@@ -2199,6 +2271,20 @@
             { name: 'Bridge', blocks: 'F:4 Am:4 F/D:6 G/E:2 F:3 Dm:1 Am:4 F:3 Dm:1 G:4' },
             { name: 'Final Chorus', blocks: 'C:3 Dm:1 Am:3 F:1 C:3 Dm:1 Am:3 F:1 C:3 Dm:1 Am:3 Am/G:1' },
             { name: 'Outro', blocks: 'C:3 Dm:1 Am:3 Am/G:1 C:4' }
+          ]
+        },
+        {
+          id: 'stilldre', title: 'Still D.R.E.', artist: 'Dr. Dre ft. Snoop Dogg', bpm: 94, d: 0.5,
+          tags: 'hip hop rap west coast piano riff chords dre snoop beat drums',
+          // West-coast hip-hop groove behind the riff
+          beat: { k: 'X.....x...x..x..', s: '....X.......X...', h: 'x.g.x.g.x.g.x.go' },
+          // You press the TOP note of each chord (A5, then G5 when it moves to Em);
+          // the rest of the chord and the bass note sound with it.
+          sections: [
+            { name: 'Intro Riff', times: 2, drums: false, notes: DRE_LOOP },
+            { name: 'Verse', times: 4, notes: DRE_LOOP },
+            { name: 'Hook', times: 2, notes: DRE_LOOP },
+            { name: 'Outro', notes: DRE_LOOP + ' A3+C5+E5+A5:4' }
           ]
         },
         {
@@ -2320,7 +2406,11 @@
         return str.trim().split(/\s+/).map(tok => {
           const [n, b] = tok.split(':');
           const beats = b ? parseFloat(b) : d;
-          return n === 'R' ? { beats } : { midi: noteToMidi(n), beats };
+          if (n === 'R') return { beats };
+          // "A3+E4+A4+C5": you press the top note, the rest of the chord sounds with it
+          const ms = n.split('+').map(noteToMidi).sort((x, y) => x - y);
+          const top = ms.pop();
+          return ms.length ? { midi: top, extra: ms, beats } : { midi: top, beats };
         }).map((s, i) => (i === 0 ? { ...s, lyric: label } : s));
       }
 
@@ -2421,9 +2511,29 @@
             steps = steps.concat(sec.blocks ? parseBlockTokens(sec.blocks, label, sec.pulse || 1)
               : sec.chords ? parseChordTokens(sec.chords, label) : parseNoteTokens(sec.notes, def.d || 1, label));
           }
+          // Optional whole-song transpose (semitones), e.g. shift: 12 = one octave up
+          if (def.shift) steps = steps.map(st => st.midi === undefined ? st
+            : { ...st, midi: st.midi + def.shift, extra: st.extra && st.extra.map(m => m + def.shift) });
           return { name: sec.name + (sec.times > 1 ? ` ×${sec.times}` : ''), steps };
         });
-        return finalizeSong({ id: def.id, title: def.title, artist: def.artist, bpm: def.bpm, tags: def.tags || '' }, sections);
+        // Drum track (in beats from the song start), bar-aligned per section
+        const drumTrack = [];
+        if (def.beat) {
+          const bar = beatBarEvents(def.beat);
+          let at = 0;
+          sections.forEach((sec, si) => {
+            const len = sec.steps.reduce((a, st) => a + (st.beats || 0), 0);
+            if (def.sections[si].drums !== false) {
+              for (let b = 0; b < len - 1e-9; b += 4) bar.forEach(e => {
+                const t = b + e.step / 4;
+                if (t < len - 1e-9) drumTrack.push({ beat: at + t, type: e.type, vol: e.vol });
+              });
+            }
+            at += len;
+          });
+          drumTrack.sort((a, b) => a.beat - b.beat);
+        }
+        return finalizeSong({ id: def.id, title: def.title, artist: def.artist, bpm: def.bpm, tags: def.tags || '', beat: def.beat || null, drumTrack }, sections);
       }
 
       const LIB_SONGS = {};
@@ -2621,7 +2731,9 @@
         lyricIdx: -1,
         schedTimer: null,
         rafId: null,
-        voices: []
+        voices: [],
+        drums: [],        // {t (song-seconds), type, vol}
+        nextDrum: 0
       };
 
       // Build the song array for simulation (uses same data as tutorial)
@@ -2758,6 +2870,11 @@
           simScheduleNote(midi, when, dur);
           simState.extras[i].forEach(m => simScheduleNote(m, when, dur));
         }
+        while (simState.nextDrum < simState.drums.length && simState.drums[simState.nextDrum].t < horizon) {
+          const d = simState.drums[simState.nextDrum++];
+          if (d.t < pos - 0.05) continue;
+          playDrum(d.type, simState.startCtx + d.t / simState.rate, d.vol);
+        }
       }
 
       function simStepAt(pos) {
@@ -2861,6 +2978,8 @@
             simScheduleNote(m, ctx.currentTime + SIM_PREROLL, remain / simState.rate));
         }
         if (cur < 0) simState.nextSched = 0;
+        simState.nextDrum = simState.drums.findIndex(d => d.t >= pos - 1e-6);
+        if (simState.nextDrum < 0) simState.nextDrum = simState.drums.length;
 
         document.getElementById('simPlayBtn').textContent = '⏸';
         simSetBadge('Playing', 'playing');
@@ -2918,6 +3037,8 @@
           t += dur;
         });
         simState.totalSec = t;
+        const lib = LIB_SONGS[simState.songId];
+        simState.drums = lib && lib.drumTrack ? lib.drumTrack.map(d => ({ t: d.beat * 60 / lib.bpm, type: d.type, vol: d.vol })) : [];
         document.getElementById('simProgressTotal').textContent = simFormatTime(t / simState.rate);
       }
 
@@ -3042,6 +3163,8 @@
         } else if (id === 'morning') {
           document.getElementById('keyboard-legend').innerText = "Song Keys: A S D F G H J K L ; ' (low → high)";
         }
+        setBeatLoop(false);
+        document.getElementById('beat-row').style.display = lib && lib.beat ? 'flex' : 'none';
         // Always reset to Full Song + the song's tempo when entering fresh from start screen
         sectionSel.value = 'full';
         const bpm = lib ? lib.bpm : id === 'morning' ? 100 : 87;
@@ -3108,6 +3231,7 @@
 
       document.getElementById("btnBack").addEventListener("click", () => {
         stopTutorial();
+        setBeatLoop(false);
         document.body.classList.remove('theme-morning');
         show("screen-start");
       });
@@ -3212,6 +3336,35 @@
       document.getElementById("tempo").addEventListener("input", e => {
         document.getElementById("tempo-val").innerText = e.target.value + " BPM";
       });
+
+      // --- Backing beat for tutorials (like a keyboard's rhythm button) ---
+      // Loops the song's drum bar at the tempo slider's BPM, on the audio clock.
+      const beatLoop = { on: false, timer: null, next: 0, step: 0, bar: [] };
+      function beatLoopTick() {
+        const bpm = parseInt(document.getElementById('tempo').value) || 90;
+        while (beatLoop.next < ctx.currentTime + 0.12) {
+          beatLoop.bar.forEach(e => { if (e.step === beatLoop.step) playDrum(e.type, beatLoop.next, e.vol); });
+          beatLoop.next += 60 / bpm / 4;
+          beatLoop.step = (beatLoop.step + 1) % 16;
+        }
+      }
+      function setBeatLoop(on) {
+        const lib = LIB_SONGS[currentSongId];
+        if (on && !(lib && lib.beat)) on = false;
+        beatLoop.on = on;
+        if (beatLoop.timer) { clearInterval(beatLoop.timer); beatLoop.timer = null; }
+        if (on) {
+          ensureCtx();
+          beatLoop.bar = beatBarEvents(lib.beat);
+          beatLoop.next = ctx.currentTime + 0.06;
+          beatLoop.step = 0;
+          beatLoopTick();
+          beatLoop.timer = setInterval(beatLoopTick, 25);
+        }
+        document.getElementById('btnBeat').textContent = on ? '🥁 Beat: On' : '🥁 Beat: Off';
+        document.getElementById('btnBeat').classList.toggle('active', on);
+      }
+      document.getElementById('btnBeat').addEventListener('click', e => { setBeatLoop(!beatLoop.on); e.currentTarget.blur(); });
 
       // --- Tutorial Engine ---
       function stopTutorial() {
@@ -3517,7 +3670,7 @@
         return currentMode === 'tutorial';
       }
 
-      // Dim and lock every key the current section never plays, so only the right keys respond
+      // Dim every key the current section never plays (they still sound, so wrong notes are audible)
       function freezeUnusedKeys() {
         const used = new Set();
         currentSong.forEach(st => {
@@ -3531,7 +3684,6 @@
 
       function triggerKeyElement(el) {
         if (!el) return;
-        if (currentMode === 'tutorial' && el.classList.contains('unused')) return;
         const midi = parseInt(el.dataset.midi);
         const kObj = ALL_KEYS_88.find(k => k.midi === midi);
         let noteDuration = 2.5;
