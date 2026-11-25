@@ -90,6 +90,9 @@
     .deck-controls .play { width: 46px; height: 46px; border-radius: 50%; font-size: 18px; padding: 0; background: var(--c); color: #071016; border: none; }
     .deck-controls .sync.flash { background: var(--c); color: #071016; }
     .deck-controls .loop.on { background: var(--c); color: #071016; border-color: var(--c); }
+    .stem-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .stem-row .btn { flex: 1; padding: 6px 4px; font-size: 11px; opacity: .45; }
+    .stem-row .btn.on { opacity: 1; background: var(--c); color: #071016; border-color: var(--c); }
     .tempo-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); }
     .tempo-row input { flex: 1; accent-color: var(--c); }
     .tempo-row .tv { width: 50px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
@@ -231,6 +234,7 @@
         <div class="chips" id="chips"></div>
         <div id="libBody"></div>
         <input type="file" id="fileIn" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" multiple hidden>
+        <input type="file" id="stemIn" webkitdirectory multiple hidden>
       </div>
     </section>
   </main>
@@ -775,6 +779,51 @@
         }
         return out.map(v => mx ? +(v / mx).toFixed(3) : 0);
       }
+      // STEMS — a song split into parts (by tools/split-stems.sh) plays as 4 synced players
+      const STEMS = [['drums', 'DRUMS'], ['bass', 'BASS'], ['other', 'MELODY'], ['vocals', 'VOCALS']];
+      const STEM_NAMES = STEMS.map(x => x[0]);
+      // Picks up every song folder holding vocals / drums / bass / other files
+      async function addStemFolders(files) {
+        const groups = {};
+        [...files].forEach(f => {
+          const m = /^(vocals|drums|bass|other)\.(mp3|wav|flac|m4a|ogg)$/i.exec(f.name);
+          const parts = (f.webkitRelativePath || f.name).split('/');
+          if (!m || parts.length < 2) return;
+          const song = parts[parts.length - 2];
+          (groups[song] = groups[song] || {})[m[1].toLowerCase()] = f;
+        });
+        const songs = Object.entries(groups).filter(([, g]) => STEM_NAMES.every(n => g[n]));
+        if (!songs.length) { toast('No stem folders found. Pick the folder tools/split-stems.sh made (each song needs vocals, drums, bass and other).', 6000); return; }
+        let added = 0;
+        for (const [song, g] of songs) {
+          toast(`Analysing stems for ${song}…`, 60000);
+          try {
+            const match = crateMatch(song);
+            let title = song, artist = '';
+            if (match) { title = match.title; artist = match.artist; }
+            else if (song.includes(' - ')) { [artist, title] = song.split(' - ', 2).map(x => x.trim()); }
+            // Tempo from the drums stem; waveform from the loudest part at each point
+            const drums = await ctx.decodeAudioData(await g.drums.arrayBuffer());
+            const tempo = detectTempo(drums, match && match.bpm);
+            let peaks = peaksOf(drums);
+            for (const n of ['bass', 'other', 'vocals']) {
+              const p = peaksOf(await ctx.decodeAudioData(await g[n].arrayBuffer()));
+              peaks = peaks.map((v, i) => Math.max(v, p[i] || 0));
+            }
+            const t = {
+              id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), title, artist, fileName: song,
+              bpm: tempo ? tempo.bpm : null, offset: tempo ? tempo.offset : 0, duration: drums.duration,
+              peaks, crate: match ? match.crate : null, blob: g.drums,
+              stems: Object.fromEntries(STEM_NAMES.map(n => [n, g[n]]))
+            };
+            myTracks.push(t); DB.put(t); added++;
+          } catch (e) { toast(`Couldn't read the stems for ${song}`); await new Promise(r => setTimeout(r, 1500)); }
+        }
+        toast(`Added ${added} song${added === 1 ? '' : 's'} with stems ✓`);
+        libTab = 'music';
+        renderLibrary();
+      }
+
       // `forced`: the crate track the user picked this file for, whatever the file is called
       let pendingCrate = null;
       async function addFiles(files, forced = null) {
@@ -833,11 +882,38 @@
             <button class="btn loop" title="Loop 4 beats" hidden>LOOP 4</button>
             <button class="btn tap" title="Tap along to the beat to set the BPM" hidden>TAP</button>
           </div>
+          <div class="stem-row" hidden>${STEMS.map(([n, label]) => `<button class="btn on" data-stem="${n}" title="Turn the ${label.toLowerCase()} on or off">${label}</button>`).join('')}</div>
           <div class="tempo-row">Tempo <input type="range" class="tempo" min="-30" max="30" step="0.1" value="0" data-default="0"><span class="tv">0.0%</span></div>`;
         d.canvas = $('canvas', d.root);
         d.audio = new Audio();
         d.audio.preservesPitch = true; d.audio.mozPreservesPitch = true; d.audio.webkitPreservesPitch = true;
-        ctx.createMediaElementSource(d.audio).connect(d.ch.input);
+        // d.audio is the clock (and the drums stem on a stem song); the other stems follow it
+        d.stemGain = {};
+        d.stemGain.drums = ctx.createGain(); d.stemGain.drums.connect(d.ch.input);
+        ctx.createMediaElementSource(d.audio).connect(d.stemGain.drums);
+        d.followers = {};
+        ['bass', 'other', 'vocals'].forEach(n => {
+          const a = new Audio();
+          a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
+          d.stemGain[n] = ctx.createGain(); d.stemGain[n].connect(d.ch.input);
+          ctx.createMediaElementSource(a).connect(d.stemGain[n]);
+          d.followers[n] = a;
+        });
+        const followers = () => d.track && d.track.stems ? Object.values(d.followers) : [];
+        const follow = a => { a.currentTime = d.audio.currentTime; a.playbackRate = d.audio.playbackRate; };
+        d.audio.addEventListener('play', () => followers().forEach(a => { follow(a); a.play().catch(() => { }); }));
+        d.audio.addEventListener('pause', () => followers().forEach(a => a.pause()));
+        d.audio.addEventListener('seeked', () => followers().forEach(follow));
+        d.audio.addEventListener('ratechange', () => followers().forEach(a => { a.playbackRate = d.audio.playbackRate; }));
+        // Pull any stem that drifts more than a few ms back in line
+        setInterval(() => {
+          if (d.audio.paused) return;
+          followers().forEach(a => { if (Math.abs(a.currentTime - d.audio.currentTime) > 0.04) follow(a); });
+        }, 400);
+        $$('.stem-row .btn', d.root).forEach(b => b.addEventListener('click', () => {
+          const on = b.classList.toggle('on');
+          d.stemGain[b.dataset.stem].gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.01);
+        }));
         d.audio.addEventListener('ended', () => { if (d.type === 'file') { d.playing = false; renderDeck(d); } });
 
         $('.play', d.root).addEventListener('click', () => d.playing ? pauseDeck(d) : playDeck(d));
@@ -887,6 +963,7 @@
       function loadGroove(d, id) {
         const g = beatById(id); if (!g) return;
         stopDeck(d);
+        $('.stem-row', d.root).hidden = true;
         d.type = 'groove'; d.g = g; d.track = null; d.bpm = g.bpm; d.offset = 0; d.key = g.key; d.camelot = g.camelot;
         d.pausedBeat = 0; d.loop = null; d.nudge = 0; d.synced = false;
         setTempo(d, 0);
@@ -898,6 +975,14 @@
         if (d.url) URL.revokeObjectURL(d.url);
         d.url = URL.createObjectURL(t.blob);
         d.audio.src = d.url;
+        // Stem songs: load the other parts and switch every part back on
+        Object.entries(d.followers).forEach(([n, a]) => {
+          if (a.src) { URL.revokeObjectURL(a.src); a.removeAttribute('src'); a.load(); }
+          if (t.stems) a.src = URL.createObjectURL(t.stems[n]);
+        });
+        STEM_NAMES.forEach(n => d.stemGain[n].gain.setValueAtTime(1, ctx.currentTime));
+        $$('.stem-row .btn', d.root).forEach(b => b.classList.add('on'));
+        $('.stem-row', d.root).hidden = !t.stems;
         d.type = 'file'; d.g = null; d.track = t; d.bpm = t.bpm || 0; d.offset = t.offset || 0; d.key = null; d.camelot = null;
         d.cue = 0; d.loop = null; d.nudge = 0; d.synced = false;
         setTempo(d, 0);
@@ -1293,11 +1378,11 @@
             </div>`).join('')}</div>`;
         } else if (libTab === 'music') {
           $('#libHint').textContent = 'Your own songs. They stay saved in this browser.';
-          body.innerHTML = `<div class="drop" id="drop">Drop MP3 / WAV files here, or <button class="btn" id="btnAdd">+ Add songs</button><br><span class="hint">Tempo is measured automatically. Pro tip: name files "Artist - Title".</span></div>
+          body.innerHTML = `<div class="drop" id="drop">Drop MP3 / WAV files here, or <button class="btn" id="btnAdd">+ Add songs</button> <button class="btn" id="btnStems" title="Pick the folder made by tools/split-stems.sh">&#127899;&#65039; Add stems folder</button><br><span class="hint">Tempo is measured automatically. Pro tip: name files "Artist - Title".</span></div>
             ${myTracks.length ? `<div class="lib-list">${myTracks.map(t => `
               <div class="item">
                 <div style="display:flex;gap:6px;align-items:center">${t.crate ? `<span class="have">✓ Starter crate</span>` : ''}<button class="del" data-del="${t.id}" title="Remove from library">✕</button></div>
-                <div class="t">${esc(t.title)}</div>
+                <div class="t">${esc(t.title)}${t.stems ? ' <span class="have">🎛️ stems</span>' : ''}</div>
                 <div class="m">${esc(t.artist || t.fileName)} · ${fmt(t.duration)}</div>
                 <div class="m"><input type="number" class="bpm-in" data-bpm="${t.id}" min="50" max="200" step="0.1" value="${t.bpm || ''}" placeholder="?"> BPM</div>
                 <div class="acts"><button class="ld a" data-load="A" data-track="${t.id}">A</button><button class="ld b" data-load="B" data-track="${t.id}">B</button>${t.bpm ? flowBadges(t.bpm, null) : ''}</div>
@@ -1330,6 +1415,7 @@
           if (ld.dataset.beat) loadGroove(d, ld.dataset.beat); else loadFile(d, ld.dataset.track);
           renderLibrary(); return;
         }
+        if (e.target.closest('#btnStems')) { $('#stemIn').click(); return; }
         const add = e.target.closest('#btnAdd, [data-addfile]');
         if (add) {
           const c = add.dataset.crate && CRATES.find(x => x.id === add.dataset.crate);
@@ -1354,6 +1440,7 @@
         t.bpm = v; DB.put(t);
         decks.forEach(d => { if (d.track === t) { d.bpm = v; renderDeck(d); } });
       });
+      $('#stemIn').addEventListener('change', e => { addStemFolders(e.target.files); e.target.value = ''; });
       $('#fileIn').addEventListener('change', e => {
         addFiles(e.target.files, pendingCrate);
         pendingCrate = null; e.target.multiple = true; e.target.value = '';
